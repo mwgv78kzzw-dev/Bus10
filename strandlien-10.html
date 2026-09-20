@@ -39,76 +39,118 @@
     }
   }
   * { box-sizing: border-box; }
+
+  /* Everything is sized in rem, and the root size follows the screen,
+     so the layout scales to fit any phone, tablet or desktop window. */
+  html {
+    font-size: clamp(11px, min(2.1vh, 4.2vw), 28px);
+    font-size: clamp(11px, min(2.1dvh, 4.2vw), 28px);
+    -webkit-text-size-adjust: 100%;
+  }
   html, body { margin: 0; }
   body {
     background: var(--bg);
     color: var(--ink);
-    font: 500 17px/1.35 var(--text);
-    -webkit-text-size-adjust: 100%;
+    font-family: var(--text);
+    font-weight: 500;
+    font-size: max(14px, 1rem);
+    line-height: 1.3;
     min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
     padding:
-      calc(env(safe-area-inset-top, 0px) + 20px)
-      calc(env(safe-area-inset-right, 0px) + 16px)
-      calc(env(safe-area-inset-bottom, 0px) + 28px)
-      calc(env(safe-area-inset-left, 0px) + 16px);
+      calc(env(safe-area-inset-top, 0px) + 0.9rem)
+      calc(env(safe-area-inset-right, 0px) + 0.9rem)
+      calc(env(safe-area-inset-bottom, 0px) + 0.9rem)
+      calc(env(safe-area-inset-left, 0px) + 0.9rem);
   }
-  main { max-width: 520px; margin: 0 auto; }
+  main {
+    flex: 1;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+  }
 
-  header { display: flex; align-items: center; gap: 14px; }
+  header { display: flex; align-items: center; gap: 0.9rem; flex: none; }
   .badge {
-    min-width: 52px; height: 52px; padding: 0 8px;
-    border-radius: 10px; background: var(--red); color: #fff;
-    font: 700 34px/52px var(--display); text-align: center;
+    flex: none; min-width: 3.1rem; height: 3.1rem; padding: 0 0.5rem;
+    border-radius: 0.6rem; background: var(--red); color: #fff;
+    font: 700 2rem/3.1rem var(--display); text-align: center;
   }
-  h1 { margin: 0; font: 600 28px/1.1 var(--text); }
-  .sub { color: var(--muted); font-size: 15px; }
+  h1 { margin: 0; font: 600 1.7rem/1.1 var(--text); }
+  .sub { color: var(--muted); font-size: max(12px, 0.9rem); }
   .refresh {
-    margin-left: auto; width: 44px; height: 44px; border-radius: 50%;
+    margin-left: auto; flex: none;
+    width: max(44px, 2.7rem); height: max(44px, 2.7rem); border-radius: 50%;
     border: 1px solid var(--line); background: var(--panel); color: var(--ink);
     display: grid; place-items: center; cursor: pointer;
   }
   .refresh:focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
-  .refresh svg { width: 22px; height: 22px; }
+  .refresh svg { width: 1.4rem; height: 1.4rem; min-width: 20px; min-height: 20px; }
   .refresh.busy svg { animation: spin 0.9s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
   @media (prefers-reduced-motion: reduce) {
     .refresh.busy svg { animation: none; opacity: 0.5; }
   }
 
-  #updated { margin: 10px 2px 0; color: var(--muted); font-size: 14px; min-height: 1.35em; }
+  #updated { flex: none; margin: 0.6rem 0.1rem 0; color: var(--muted); font-size: max(12px, 0.85rem); min-height: 1.3em; }
 
-  .dir {
-    background: var(--panel); border: 1px solid var(--line);
-    border-radius: 16px; padding: 16px 18px 6px; margin-top: 16px;
+  /* Directions fill the space that's left: stacked in portrait, side by side in landscape. */
+  #dirs {
+    flex: 1 1 auto;
+    display: flex; flex-direction: column; gap: 0.9rem;
+    margin-top: 0.9rem;
   }
-  .dir h2 { margin: 0 0 6px; font: 500 15px/1.2 var(--text); color: var(--muted); }
-  .dir h2 .place { display: block; margin-top: 2px; font: 600 26px/1.15 var(--text); color: var(--ink); }
+  @media (orientation: landscape) {
+    #dirs { flex-direction: row; }
+  }
+  .dir {
+    flex: 1 1 0; min-width: 0;
+    display: flex; flex-direction: column;
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 1rem; padding: 1rem 1.2rem 0.3rem;
+  }
+  .dir h2 { margin: 0 0 0.3rem; font-size: max(12px, 0.9rem); font-weight: 500; color: var(--muted); }
+  .dir h2 .place {
+    display: block; margin-top: 0.1rem;
+    font: 600 1.5rem/1.15 var(--text); color: var(--ink);
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+    overflow: hidden; overflow-wrap: anywhere;
+  }
 
-  .deps { list-style: none; margin: 0; padding: 0; }
+  .deps { flex: 1; display: flex; flex-direction: column; list-style: none; margin: 0; padding: 0; }
   .dep {
-    display: grid; grid-template-columns: minmax(92px, auto) 1fr;
-    align-items: baseline; gap: 12px;
-    padding: 12px 0; border-top: 1px solid var(--line);
+    flex: 1 1 0; padding: 0.35rem 0;
+    display: grid; grid-template-columns: 8.2rem 1fr;
+    align-items: center; gap: 0.6rem;
+    border-top: 1px solid var(--line);
   }
   .dep:first-child { border-top: 0; }
+  .dep.first { flex: 2 1 0; }
   .when { white-space: nowrap; }
-  .num { font: 700 40px/1 var(--display); font-variant-numeric: tabular-nums; }
-  .unit { font: 600 18px var(--text); color: var(--muted); margin-left: 4px; }
-  .dep.first .num { font-size: 72px; }
-  .dep.first .num.clock { font-size: 48px; }
+  .num { font: 700 2.4rem/1 var(--display); font-variant-numeric: tabular-nums; }
+  .unit { font-family: var(--text); font-weight: 600; font-size: max(14px, 1.1rem); color: var(--muted); margin-left: 0.25rem; }
+  .dep.first .num { font-size: 4.6rem; }
+  .dep.first .num.clock { font-size: 2.5rem; }
+  .dep.first .num.word { font-size: 3.4rem; }
   .dep.soon .num { color: var(--red); }
-  .dest { font-weight: 600; }
-  .status { color: var(--muted); font-size: 15px; }
+  .dest { font-weight: 600; font-size: max(14px, 1.05rem); }
+  .status { color: var(--muted); font-size: max(13px, 1rem); font-weight: 600; }
+  .dest + .status { font-size: max(12px, 0.9rem); font-weight: 500; }
   .status.late { color: var(--late); }
   .status.live { color: var(--ok); }
 
   .msg {
-    margin-top: 16px; padding: 12px 14px; border-radius: 12px;
+    flex: none; margin-top: 0.9rem; padding: 0.8rem 1rem; border-radius: 0.8rem;
     background: var(--panel); border: 1px solid var(--line); border-left: 5px solid var(--red);
+    font-size: max(14px, 1rem);
   }
-  .msg p { margin: 0 0 4px; }
-  .msg p:last-child { margin: 0; color: var(--muted); font-size: 15px; }
-  footer { margin: 22px 2px 0; color: var(--muted); font-size: 13px; }
+  .msg p { margin: 0 0 0.2rem; }
+  .msg p:last-child { margin: 0; color: var(--muted); font-size: max(12px, 0.9rem); }
+  footer { flex: none; margin: 0.7rem 0.1rem 0; color: var(--muted); font-size: max(11px, 0.75rem); }
 </style>
 </head>
 <body>
@@ -259,7 +301,7 @@
 
   function whenParts(t, now) {
     var mins = Math.floor((t - now) / 60000);
-    if (mins < 1) return { num: "Now", unit: "", clock: false, soon: true };
+    if (mins < 1) return { num: "Now", unit: "", clock: false, word: true, soon: true };
     if (mins < 60) return { num: String(mins), unit: "min", clock: false, soon: mins <= 2 };
     return { num: timeFmt.format(new Date(t)), unit: "", clock: true, soon: false };
   }
@@ -269,7 +311,7 @@
     var diff = Math.round((t - aimed) / 60000);
     var clock = timeFmt.format(new Date(t));
     if (!c.realtime) return { text: clock + " · Scheduled", cls: "" };
-    if (diff >= 1) return { text: clock + " · " + diff + " min late (sched. " + timeFmt.format(new Date(aimed)) + ")", cls: "late" };
+    if (diff >= 1) return { text: clock + " · " + diff + " min late", cls: "late" };
     if (diff <= -1) return { text: clock + " · " + Math.abs(diff) + " min early", cls: "live" };
     return { text: clock + " · On time", cls: "live" };
   }
@@ -307,10 +349,10 @@
 
         var li = el("li", "dep" + (i === 0 ? " first" : "") + (w.soon ? " soon" : ""));
         var when = el("div", "when");
-        when.appendChild(el("span", "num" + (w.clock ? " clock" : ""), w.num));
+        when.appendChild(el("span", "num" + (w.clock ? " clock" : "") + (w.word ? " word" : ""), w.num));
         if (w.unit) when.appendChild(el("span", "unit", w.unit));
         var meta = el("div", "meta");
-        meta.appendChild(el("div", "dest", dest));
+        if (dest !== firstDest) meta.appendChild(el("div", "dest", dest));
         meta.appendChild(el("div", "status " + s.cls, s.text));
         li.appendChild(when);
         li.appendChild(meta);
