@@ -187,7 +187,35 @@
   }
   .msg p { margin: 0 0 0.2rem; }
   .msg p:last-child { margin: 0; color: var(--muted); font-size: max(12px, 0.9rem); }
-  footer { flex: none; margin: 0.7rem 0.1rem 0; color: var(--muted); font-size: max(11px, 0.75rem); }
+  /* Nyhetsticker */
+  .ticker {
+    flex: none; display: flex; align-items: center; gap: 0.7rem;
+    margin-top: 0.7rem; padding: 0.5rem 0.8rem 0.5rem 0.55rem;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 1rem;
+  }
+  .ticker[hidden] { display: none; }
+  .tk-label {
+    flex: none; padding: 0.3rem 0.55rem; border-radius: 0.5rem;
+    background: var(--ink); color: var(--bg);
+    font-family: var(--display); font-weight: 700; font-size: max(12px, 0.9rem); line-height: 1; letter-spacing: 0.08em;
+  }
+  .tk-view {
+    flex: 1; min-width: 0; overflow: hidden;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+  }
+  .tk-track { display: inline-flex; white-space: nowrap; will-change: transform; animation: tk-scroll 120s linear infinite; }
+  .ticker:active .tk-track { animation-play-state: paused; }
+  @keyframes tk-scroll { to { transform: translateX(-50%); } }
+  .tk-set { display: inline-flex; align-items: baseline; }
+  .tk-item { font-size: max(14px, 1rem); }
+  .tk-item b { font-weight: 600; }
+  .tk-in { margin-left: 0.45em; color: var(--muted); }
+  .tk-dot { margin: 0 1.1rem; color: var(--red); }
+  .tk-track.single { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; white-space: normal; animation: none; }
+  @media (prefers-reduced-motion: reduce) { .tk-track { animation: none; } }
+
+  footer { flex: none; margin: 0.5rem 0.1rem 0; color: var(--muted); font-size: max(11px, 0.75rem); }
 </style>
 </head>
 <body>
@@ -208,7 +236,12 @@
   <div id="dirs"></div>
   <div id="msg"></div>
 
-  <footer>Data fra Entur og Meteorologisk institutt.</footer>
+  <div class="ticker" id="ticker" role="region" aria-label="Nyheter fra NRK" hidden>
+    <span class="tk-label">NRK</span>
+    <div class="tk-view"><div class="tk-track" id="tk-track"></div></div>
+  </div>
+
+  <footer>Data fra Entur, Meteorologisk institutt og NRK.</footer>
 </main>
 
 <script>
@@ -447,6 +480,138 @@
     }).finally(function () { weather.busy = false; });
   }
 
+  // ---- Nyheter fra NRK (overskrift + ingress) ----
+  var FEED_URL = "https://www.nrk.no/toppsaker.rss";
+  var news = { items: [], sig: "", at: 0, busy: false, idx: 0, timer: null };
+  var reduceMotion = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+
+  function decodeText(s) {
+    var ta = document.createElement("textarea");
+    ta.innerHTML = String(s || "").replace(/<\/(p|div|li|h\d)>|<br\s*\/?>/gi, " ").replace(/<[^>]*>/g, "");
+    return ta.value.replace(/\s+/g, " ").trim();
+  }
+  function cleanItems(list) {
+    return (Array.isArray(list) ? list : []).filter(function (x) { return x && x.tittel; }).slice(0, 12).map(function (x) {
+      return { tittel: String(x.tittel), ingress: String(x.ingress || "") };
+    });
+  }
+  function childText(node, tag) {
+    var n = node.getElementsByTagName(tag)[0];
+    return n ? n.textContent : "";
+  }
+  function parseRss(text) {
+    var doc = new DOMParser().parseFromString(text, "text/xml");
+    if (doc.getElementsByTagName("parsererror").length) throw new Error("Ugyldig RSS");
+    var nodes = doc.getElementsByTagName("item"), out = [];
+    for (var i = 0; i < nodes.length && out.length < 12; i++) {
+      var t = decodeText(childText(nodes[i], "title"));
+      if (t) out.push({ tittel: t, ingress: decodeText(childText(nodes[i], "description")) });
+    }
+    return out;
+  }
+  function itemsFromJson(text) {
+    var j = JSON.parse(text);
+    var age = Date.now() - Date.parse(j && j.hentet);
+    if (isFinite(age) && age > 3 * 86400000) throw new Error("Gamle nyheter");
+    return cleanItems(j && j.saker);
+  }
+  function itemsFromRss2json(text) {
+    var j = JSON.parse(text);
+    if (!j || j.status !== "ok") throw new Error("rss2json feilet");
+    return cleanItems((j.items || []).map(function (x) {
+      return { tittel: decodeText(x.title), ingress: decodeText(x.description) };
+    }));
+  }
+  function getText(url) {
+    var ctl = new AbortController();
+    var timer = setTimeout(function () { ctl.abort(); }, 10000);
+    return fetch(url, { signal: ctl.signal }).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.text();
+    }).finally(function () { clearTimeout(timer); });
+  }
+  // Prøver kildene i rekkefølge til en gir nyheter.
+  function newsSources() {
+    var list = [];
+    var bucket = Math.floor(Date.now() / 300000);
+    var m = /^([^.]+)\.github\.io$/.exec(location.hostname);
+    var repo = location.pathname.split("/")[1];
+    if (m && repo && repo.indexOf(".") === -1) {
+      list.push(function () {
+        return getText("https://raw.githubusercontent.com/" + m[1] + "/" + repo + "/main/nyheter.json?t=" + bucket).then(itemsFromJson);
+      });
+    }
+    list.push(function () { return getText("nyheter.json?t=" + bucket).then(itemsFromJson); });
+    list.push(function () { return getText(FEED_URL).then(parseRss); });
+    list.push(function () {
+      return getText("https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(FEED_URL)).then(itemsFromRss2json);
+    });
+    return list;
+  }
+  function fetchNews() {
+    var list = newsSources(), i = 0;
+    function next() {
+      if (i >= list.length) return Promise.reject(new Error("Ingen nyhetskilde svarte"));
+      return list[i++]().then(function (items) {
+        if (!items.length) throw new Error("Tom");
+        return items;
+      }).catch(next);
+    }
+    return next();
+  }
+
+  function tickerItem(it) {
+    var item = el("span", "tk-item");
+    item.appendChild(el("b", null, it.tittel));
+    if (it.ingress) item.appendChild(el("span", "tk-in", it.ingress));
+    return item;
+  }
+  function tickerSet(hidden) {
+    var set = el("span", "tk-set");
+    if (hidden) set.setAttribute("aria-hidden", "true");
+    news.items.forEach(function (it) {
+      set.appendChild(tickerItem(it));
+      set.appendChild(el("span", "tk-dot", "•"));
+    });
+    return set;
+  }
+  function showSingle() {
+    var track = $("tk-track");
+    track.className = "tk-track single";
+    track.replaceChildren(tickerItem(news.items[news.idx % news.items.length]));
+  }
+  function renderTicker() {
+    var box = $("ticker"), track = $("tk-track");
+    clearInterval(news.timer);
+    news.timer = null;
+    track.className = "tk-track";
+    track.style.animationDuration = "";
+    track.replaceChildren();
+    if (!news.items.length) { box.hidden = true; return; }
+    box.hidden = false;
+    if (reduceMotion && reduceMotion.matches) {
+      // Uten bevegelse: én sak om gangen, byttes hvert 9. sekund.
+      showSingle();
+      news.timer = setInterval(function () { news.idx++; showSingle(); }, 9000);
+      return;
+    }
+    track.appendChild(tickerSet(false));
+    track.appendChild(tickerSet(true));
+    var half = track.getBoundingClientRect().width / 2;
+    track.style.animationDuration = Math.max(30, half / 55) + "s";
+  }
+  function loadNews() {
+    if (news.busy || Date.now() - news.at < 8 * 60000) return;
+    news.busy = true;
+    fetchNews().then(function (items) {
+      news.at = Date.now();
+      var sig = JSON.stringify(items);
+      if (sig !== news.sig) { news.sig = sig; news.items = items; news.idx = 0; renderTicker(); }
+    }).catch(function () {
+      news.at = Date.now() - 5 * 60000; // prøv igjen om noen minutter
+    }).finally(function () { news.busy = false; });
+  }
+
   function whenParts(t, now) {
     var mins = Math.floor((t - now) / 60000);
     if (mins < 1) return { num: "Nå", unit: "", clock: false, word: true, soon: true };
@@ -533,12 +698,14 @@
   }
 
   document.addEventListener("visibilitychange", function () {
-    if (document.visibilityState === "visible") load();
+    if (document.visibilityState === "visible") { load(); loadNews(); }
   });
   setInterval(function () { if (document.visibilityState === "visible") load(); }, 30000);
   setInterval(render, 10000);
+  setInterval(loadNews, 60000);
 
   load();
+  loadNews();
 })();
 </script>
 </body>
