@@ -23,6 +23,13 @@
     --red: #d0202b;
     --late: #a84a08;
     --ok: #1a7548;
+    --sun: #f5a300;
+    --moon: #7b93ad;
+    --cloud: #b4c3cf;
+    --cloud-dark: #8b9fb0;
+    --rain: #2f7fc4;
+    --snow: #6db0e8;
+    --bolt: #f2b200;
     --display: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", sans-serif;
     --text: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
   }
@@ -36,6 +43,13 @@
       --red: #ff5a5f;
       --late: #f0a35e;
       --ok: #55c58a;
+      --sun: #ffc247;
+      --moon: #e6eef5;
+      --cloud: #b9c7d3;
+      --cloud-dark: #7e92a2;
+      --rain: #6cb7ff;
+      --snow: #e8f3ff;
+      --bolt: #ffd44d;
     }
   }
   * { box-sizing: border-box; }
@@ -85,32 +99,41 @@
   .weather {
     margin-left: auto; flex: none;
     display: flex; flex-direction: column; align-items: center;
-    text-align: center; line-height: 1; min-width: 3.2rem;
+    text-align: center; line-height: 1; min-width: 3.6rem;
   }
   .weather[hidden] { display: none; }
-  .w-icon { font-size: 2rem; line-height: 1.15; }
-  .w-temp { margin-top: 0.1rem; font: 700 1.5rem/1 var(--display); font-variant-numeric: tabular-nums; }
+  .w-icon { width: 3.6rem; height: 3.6rem; }
+  .w-icon svg { display: block; width: 100%; height: 100%; overflow: visible; }
 
-  .bar {
-    flex: none; display: flex; align-items: center; justify-content: space-between;
-    gap: 0.6rem; margin-top: 0.3rem;
-  }
-  .refresh {
-    flex: none; display: inline-flex; align-items: center; gap: 0.4rem;
-    min-height: 44px; margin: -0.5rem 0; padding: 0 1rem; border-radius: 999px;
-    border: 1px solid var(--line); background: var(--panel); color: var(--ink);
-    font-family: var(--text); font-weight: 600; font-size: max(13px, 0.9rem);
-    cursor: pointer;
-  }
-  .refresh:focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
-  .refresh svg { width: 1.1rem; height: 1.1rem; min-width: 16px; min-height: 16px; }
-  .refresh.busy svg { animation: spin 0.9s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  /* Animated weather icons */
+  .w-svg .w-sun { fill: var(--sun); transform-box: fill-box; transform-origin: center; animation: w-pulse 3.5s ease-in-out infinite; }
+  .w-svg .w-rays { stroke: var(--sun); stroke-width: 3; stroke-linecap: round; animation: w-spin 26s linear infinite; }
+  .w-svg .w-moon, .w-svg .w-star { fill: var(--moon); }
+  .w-svg .w-moon { animation: w-bob 6s ease-in-out infinite alternate; }
+  .w-svg .w-star { animation: w-twinkle 2.6s ease-in-out infinite; }
+  .w-svg .w-cloud { fill: var(--cloud); stroke: var(--bg); stroke-width: 2; paint-order: stroke; }
+  .w-svg .w-cloud.dark { fill: var(--cloud-dark); }
+  .w-svg .w-drift { animation: w-drift 7s ease-in-out infinite alternate; }
+  .w-svg .w-drift.rev { animation-duration: 9s; animation-direction: alternate-reverse; }
+  .w-svg .w-drop { stroke: var(--rain); stroke-width: 2.6; stroke-linecap: round; animation: w-fall 1.1s linear infinite backwards; }
+  .w-svg .w-flake { fill: var(--snow); animation: w-snow 2.8s linear infinite backwards; }
+  .w-svg .w-bolt { fill: var(--bolt); stroke: var(--bg); stroke-width: 1.2; stroke-linejoin: round; animation: w-flash 3.4s linear infinite; }
+  .w-svg .w-fog { stroke: var(--cloud-dark); stroke-width: 3.2; stroke-linecap: round; animation: w-mist 5s ease-in-out infinite alternate; }
+  @keyframes w-spin { to { transform: rotate(360deg); } }
+  @keyframes w-pulse { 50% { transform: scale(1.07); } }
+  @keyframes w-bob { to { transform: translateY(-1.5px); } }
+  @keyframes w-twinkle { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+  @keyframes w-drift { from { transform: translateX(-2px); } to { transform: translateX(2px); } }
+  @keyframes w-fall { 0% { transform: translateY(-3px); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(8px); opacity: 0; } }
+  @keyframes w-snow { 0% { transform: translate(0, -3px); opacity: 0; } 15% { opacity: 1; } 50% { transform: translate(2px, 3px); } 100% { transform: translate(-1px, 10px); opacity: 0; } }
+  @keyframes w-flash { 0%, 50%, 100% { opacity: 0.45; } 52% { opacity: 1; } 55% { opacity: 0.5; } 57% { opacity: 1; } 63% { opacity: 0.45; } }
+  @keyframes w-mist { from { transform: translateX(-3px); } to { transform: translateX(3px); } }
   @media (prefers-reduced-motion: reduce) {
-    .refresh.busy svg { animation: none; opacity: 0.5; }
+    .w-svg * { animation: none !important; }
   }
+  .w-temp { margin-top: -0.5rem; font: 700 1.5rem/1 var(--display); font-variant-numeric: tabular-nums; }
 
-  #updated { margin: 0 0.1rem; color: var(--muted); font-size: max(12px, 0.85rem); min-height: 1.3em; }
+  #updated { flex: none; margin: 0.7rem 0.1rem 0; color: var(--muted); font-size: max(12px, 0.85rem); min-height: 1.3em; }
 
   /* Directions fill the space that's left: stacked in portrait, side by side in landscape. */
   #dirs {
@@ -176,20 +199,12 @@
       <div class="sub">Skyss · Bergen</div>
     </div>
     <div class="weather" id="weather" hidden>
-      <span class="w-icon" id="w-icon" aria-hidden="true"></span>
+      <div class="w-icon" id="w-icon" aria-hidden="true"></div>
       <span class="w-temp" id="w-temp"></span>
     </div>
   </header>
 
-  <div class="bar">
-    <div id="updated" role="status" aria-live="polite">Laster avganger…</div>
-    <button class="refresh" id="refresh" type="button" aria-label="Oppdater avganger">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/>
-      </svg>
-      <span>Oppdater</span>
-    </button>
-  </div>
+  <div id="updated" role="status" aria-live="polite">Laster avganger…</div>
   <div id="dirs"></div>
   <div id="msg"></div>
 
@@ -302,7 +317,6 @@
   function load() {
     if (busy) return;
     busy = true;
-    $("refresh").classList.add("busy");
     var id = store.get("stopId");
     var p = id
       ? fetchCalls(id).then(function (res) { return { id: id, calls: res.calls, lat: res.lat, lon: res.lon }; })
@@ -319,27 +333,95 @@
       state.error = err && err.name === "AbortError" ? "Forespørselen tok for lang tid." : (err && err.message) || "Ukjent feil.";
     }).finally(function () {
       busy = false;
-      $("refresh").classList.remove("busy");
       render();
     });
   }
 
 
   // Weather from MET Norway (Yr). Uses the stop's own coordinates, Bergen centre as fallback.
-  function weatherEmoji(code) {
+  var CLOUD_D = "M18 44h26a9 9 0 0 0 1.5-17.9A13 13 0 0 0 20.6 22.5 11 11 0 0 0 18 44z";
+  var MOON_D = "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z";
+
+  function gCloud(tx, ty, k, o) {
+    o = o || {};
+    return '<g transform="translate(' + tx + ' ' + ty + ') scale(' + k + ')"><g class="w-drift' + (o.rev ? " rev" : "") + '">' +
+      '<path class="w-cloud' + (o.dark ? " dark" : "") + '" d="' + CLOUD_D + '"/></g></g>';
+  }
+  function gSun(cx, cy, r) {
+    var rays = "";
+    for (var i = 0; i < 8; i++) {
+      var a = i * Math.PI / 4, c = Math.cos(a), s = Math.sin(a);
+      rays += '<line x1="' + (cx + c * (r + 4)).toFixed(1) + '" y1="' + (cy + s * (r + 4)).toFixed(1) +
+              '" x2="' + (cx + c * (r + 8)).toFixed(1) + '" y2="' + (cy + s * (r + 8)).toFixed(1) + '"/>';
+    }
+    return '<g class="w-rays" style="transform-origin:' + cx + 'px ' + cy + 'px">' + rays + '</g>' +
+           '<circle class="w-sun" cx="' + cx + '" cy="' + cy + '" r="' + r + '"/>';
+  }
+  function gMoon(x, y, k) {
+    return '<g transform="translate(' + x + ' ' + y + ') scale(' + k + ')"><path class="w-moon" d="' + MOON_D + '"/></g>';
+  }
+  function gStars(list) {
+    return list.map(function (p) {
+      return '<circle class="w-star" cx="' + p[0] + '" cy="' + p[1] + '" r="' + p[2] + '" style="animation-delay:' + p[3] + 's"/>';
+    }).join("");
+  }
+  function gDrops(xs, y0) {
+    return xs.map(function (x, i) {
+      return '<line class="w-drop" x1="' + x + '" y1="' + y0 + '" x2="' + (x - 2) + '" y2="' + (y0 + 6) + '" style="animation-delay:' + (i * 0.28).toFixed(2) + 's"/>';
+    }).join("");
+  }
+  function gFlakes(xs, y0) {
+    return xs.map(function (x, i) {
+      return '<circle class="w-flake" cx="' + x + '" cy="' + y0 + '" r="1.9" style="animation-delay:' + (i * 0.55).toFixed(2) + 's"/>';
+    }).join("");
+  }
+  function gFog(cy, x1, x2, delay) {
+    return '<line class="w-fog" x1="' + x1 + '" y1="' + cy + '" x2="' + x2 + '" y2="' + cy + '" style="animation-delay:' + delay + 's"/>';
+  }
+
+  function weatherSvg(code) {
     var night = /_night$/.test(code);
     var base = code.replace(/_(day|night|polartwilight)$/, "");
-    if (base.indexOf("thunder") !== -1) return "⛈️";
-    if (base.indexOf("sleet") !== -1) return "🌨️";
-    if (base.indexOf("snow") !== -1) return "🌨️";
-    if (base.indexOf("showers") !== -1) return "🌦️";
-    if (base.indexOf("rain") !== -1) return "🌧️";
-    if (base === "fog") return "🌫️";
-    if (base === "cloudy") return "☁️";
-    if (base === "partlycloudy") return night ? "☁️" : "⛅";
-    if (base === "fair") return night ? "🌙" : "🌤️";
-    if (base === "clearsky") return night ? "🌙" : "☀️";
-    return "☁️";
+    var thunder = base.indexOf("thunder") !== -1;
+    var sleet = base.indexOf("sleet") !== -1;
+    var snow = base.indexOf("snow") !== -1;
+    var rain = base.indexOf("rain") !== -1;
+    var showers = base.indexOf("showers") !== -1;
+    var heavy = base.indexOf("heavy") === 0;
+    var light = base.indexOf("light") === 0;
+    var body;
+
+    if (thunder || sleet || snow || rain) {
+      var xs = thunder ? [19, 47] : light ? [26, 40] : heavy ? [20, 28, 36, 44] : [22, 32, 42];
+      var peek = showers && !thunder;
+      var y0 = peek ? 51 : 42;
+      var precip;
+      if (sleet) {
+        precip = gDrops(xs.filter(function (_, i) { return i % 2 === 0; }), y0) +
+                 gFlakes(xs.filter(function (_, i) { return i % 2 === 1; }), y0);
+      } else if (snow) {
+        precip = gFlakes(xs, y0);
+      } else {
+        precip = gDrops(xs, y0);
+      }
+      if (thunder) precip += '<polygon class="w-bolt" points="35,34 26,50 33,50 29,62 42,44 35,44 39,34"/>';
+      body = peek
+        ? (night ? gMoon(3, 1, 1.5) : gSun(22, 22, 8)) + gCloud(14, 12, 0.85) + precip
+        : gCloud(0, -5, 1, { dark: true }) + precip;
+    } else if (base === "fog") {
+      body = gCloud(0, -4, 0.95) + gFog(44, 14, 50, 0) + gFog(50, 20, 56, -1.2) + gFog(56, 12, 44, -2.4);
+    } else if (base === "clearsky") {
+      body = night
+        ? gMoon(9, 11, 1.9) + gStars([[47, 17, 1.6, 0], [53, 29, 1.2, 0.9], [40, 10, 1.1, 1.6]])
+        : gSun(32, 32, 11);
+    } else if (base === "fair") {
+      body = (night ? gMoon(6, 6, 1.6) : gSun(26, 26, 10)) + gCloud(27, 25, 0.55);
+    } else if (base === "partlycloudy") {
+      body = (night ? gMoon(3, 1, 1.5) : gSun(22, 22, 8)) + gCloud(14, 12, 0.85);
+    } else {
+      body = gCloud(18, 3, 0.8, { dark: true, rev: true }) + gCloud(-2, 10, 0.95);
+    }
+    return '<svg class="w-svg" viewBox="0 0 64 64" aria-hidden="true" focusable="false">' + body + '</svg>';
   }
 
   function loadWeather() {
@@ -355,7 +437,7 @@
       var code = next && next.summary && next.summary.symbol_code;
       if (typeof t !== "number" || !code) throw new Error("no weather");
       var deg = Math.round(t);
-      $("w-icon").textContent = weatherEmoji(code);
+      $("w-icon").innerHTML = weatherSvg(code);
       $("w-temp").textContent = deg + "°";
       $("weather").setAttribute("aria-label", "Været nå: " + deg + " grader");
       $("weather").hidden = false;
@@ -440,7 +522,7 @@
     if (state.error) {
       var box = el("div", "msg");
       box.appendChild(el("p", null, "Kunne ikke laste avganger."));
-      box.appendChild(el("p", null, state.error + (state.loaded ? " Viser siste oppdatering." : " Sjekk tilkoblingen og trykk på Oppdater.")));
+      box.appendChild(el("p", null, state.error + (state.loaded ? " Viser siste oppdatering." : " Sjekk tilkoblingen og last siden på nytt.")));
       msg.appendChild(box);
     } else if (state.loaded && !keys.length) {
       var empty = el("div", "msg");
@@ -450,7 +532,6 @@
     }
   }
 
-  $("refresh").addEventListener("click", load);
   document.addEventListener("visibilitychange", function () {
     if (document.visibilityState === "visible") load();
   });
