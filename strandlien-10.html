@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Bus 10">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#eef2f4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1a22" media="(prefers-color-scheme: dark)">
+<title>Bus 10 · Strandlien</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚌</text></svg>">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;600&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #eef2f4;
+    --panel: #ffffff;
+    --ink: #14232f;
+    --muted: #586a76;
+    --line: #d5dde2;
+    --red: #d0202b;
+    --late: #a84a08;
+    --ok: #1a7548;
+    --display: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", sans-serif;
+    --text: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1a22;
+      --panel: #16252f;
+      --ink: #eaf1f5;
+      --muted: #93a5b1;
+      --line: #29404e;
+      --red: #ff5a5f;
+      --late: #f0a35e;
+      --ok: #55c58a;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 500 17px/1.35 var(--text);
+    -webkit-text-size-adjust: 100%;
+    min-height: 100vh;
+    padding:
+      calc(env(safe-area-inset-top, 0px) + 20px)
+      calc(env(safe-area-inset-right, 0px) + 16px)
+      calc(env(safe-area-inset-bottom, 0px) + 28px)
+      calc(env(safe-area-inset-left, 0px) + 16px);
+  }
+  main { max-width: 520px; margin: 0 auto; }
+
+  header { display: flex; align-items: center; gap: 14px; }
+  .badge {
+    min-width: 52px; height: 52px; padding: 0 8px;
+    border-radius: 10px; background: var(--red); color: #fff;
+    font: 700 34px/52px var(--display); text-align: center;
+  }
+  h1 { margin: 0; font: 600 28px/1.1 var(--text); }
+  .sub { color: var(--muted); font-size: 15px; }
+  .refresh {
+    margin-left: auto; width: 44px; height: 44px; border-radius: 50%;
+    border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+    display: grid; place-items: center; cursor: pointer;
+  }
+  .refresh:focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
+  .refresh svg { width: 22px; height: 22px; }
+  .refresh.busy svg { animation: spin 0.9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    .refresh.busy svg { animation: none; opacity: 0.5; }
+  }
+
+  #updated { margin: 10px 2px 0; color: var(--muted); font-size: 14px; min-height: 1.35em; }
+
+  .dir {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 16px; padding: 16px 18px 6px; margin-top: 16px;
+  }
+  .dir h2 { margin: 0 0 6px; font: 500 15px/1.2 var(--text); color: var(--muted); }
+  .dir h2 .place { display: block; margin-top: 2px; font: 600 26px/1.15 var(--text); color: var(--ink); }
+
+  .deps { list-style: none; margin: 0; padding: 0; }
+  .dep {
+    display: grid; grid-template-columns: minmax(92px, auto) 1fr;
+    align-items: baseline; gap: 12px;
+    padding: 12px 0; border-top: 1px solid var(--line);
+  }
+  .dep:first-child { border-top: 0; }
+  .when { white-space: nowrap; }
+  .num { font: 700 40px/1 var(--display); font-variant-numeric: tabular-nums; }
+  .unit { font: 600 18px var(--text); color: var(--muted); margin-left: 4px; }
+  .dep.first .num { font-size: 72px; }
+  .dep.first .num.clock { font-size: 48px; }
+  .dep.soon .num { color: var(--red); }
+  .dest { font-weight: 600; }
+  .status { color: var(--muted); font-size: 15px; }
+  .status.late { color: var(--late); }
+  .status.live { color: var(--ok); }
+
+  .msg {
+    margin-top: 16px; padding: 12px 14px; border-radius: 12px;
+    background: var(--panel); border: 1px solid var(--line); border-left: 5px solid var(--red);
+  }
+  .msg p { margin: 0 0 4px; }
+  .msg p:last-child { margin: 0; color: var(--muted); font-size: 15px; }
+  footer { margin: 22px 2px 0; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="badge" aria-label="Line 10">10</div>
+    <div>
+      <h1>Strandlien</h1>
+      <div class="sub">Skyss · Bergen</div>
+    </div>
+    <button class="refresh" id="refresh" type="button" aria-label="Refresh departures">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/>
+      </svg>
+    </button>
+  </header>
+
+  <div id="updated" role="status" aria-live="polite">Loading departures…</div>
+  <div id="dirs"></div>
+  <div id="msg"></div>
+
+  <footer>Real-time data from Entur. Updates every 30 seconds while the page is open.</footer>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  var CLIENT = "personal-strandlien-bus10";
+  var GRAPHQL = "https://api.entur.io/journey-planner/v3/graphql";
+  var GEOCODER = "https://api.entur.io/geocoder/v1/autocomplete";
+  var LINE = "10";
+  var STOP_NAME = "Strandlien";
+  var SHOW = 3;
+
+  var QUERY =
+    "query Departures($id: String!) {" +
+    "  stopPlace(id: $id) {" +
+    "    id name" +
+    "    estimatedCalls(numberOfDepartures: 150, timeRange: 43200) {" +
+    "      realtime aimedDepartureTime expectedDepartureTime" +
+    "      destinationDisplay { frontText }" +
+    "      quay { id publicCode }" +
+    "      serviceJourney { line { publicCode } }" +
+    "    }" +
+    "  }" +
+    "}";
+
+  var timeFmt = new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "Europe/Oslo"
+  });
+
+  var store = {
+    get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  };
+
+  var state = { calls: [], updatedAt: null, error: null, loaded: false };
+  var busy = false;
+
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+
+  function getJSON(url, opts) {
+    var ctl = new AbortController();
+    var timer = setTimeout(function () { ctl.abort(); }, 12000);
+    opts = opts || {};
+    opts.signal = ctl.signal;
+    return fetch(url, opts).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    }).finally(function () { clearTimeout(timer); });
+  }
+
+  function fetchCalls(id) {
+    return getJSON(GRAPHQL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "ET-Client-Name": CLIENT },
+      body: JSON.stringify({ query: QUERY, variables: { id: id } })
+    }).then(function (j) {
+      if (j.errors && j.errors.length) throw new Error(j.errors[0].message);
+      var sp = j.data && j.data.stopPlace;
+      if (!sp) return [];
+      return (sp.estimatedCalls || []).filter(function (c) {
+        var l = c.serviceJourney && c.serviceJourney.line;
+        return l && l.publicCode === LINE;
+      });
+    });
+  }
+
+  // Finds the Bergen-area stop called Strandlien that line 10 actually serves.
+  function findStop() {
+    var url = GEOCODER + "?text=" + encodeURIComponent(STOP_NAME) + "&layers=venue&size=15&lang=no";
+    return getJSON(url, { headers: { "ET-Client-Name": CLIENT } }).then(function (j) {
+      var feats = (j.features || []).filter(function (f) {
+        return f.properties && String(f.properties.id).indexOf("NSR:StopPlace:") === 0;
+      });
+      var exact = feats.filter(function (f) {
+        return String(f.properties.name || "").toLowerCase() === STOP_NAME.toLowerCase();
+      });
+      if (exact.length) feats = exact;
+      var local = feats.filter(function (f) {
+        return /vestland|hordaland/i.test(String(f.properties.county || ""));
+      });
+      if (local.length) feats = local;
+      if (!feats.length) throw new Error("Could not find a stop named " + STOP_NAME + ".");
+
+      var ids = feats.slice(0, 6).map(function (f) { return f.properties.id; });
+      var i = 0;
+      function next() {
+        if (i >= ids.length) return Promise.resolve({ id: null, calls: [] });
+        var id = ids[i++];
+        return fetchCalls(id).then(function (calls) {
+          return calls.length ? { id: id, calls: calls } : next();
+        });
+      }
+      return next();
+    });
+  }
+
+  function load() {
+    if (busy) return;
+    busy = true;
+    $("refresh").classList.add("busy");
+    var id = store.get("stopId");
+    var p = id
+      ? fetchCalls(id).then(function (calls) { return { id: id, calls: calls }; })
+      : findStop().then(function (res) { if (res.id) store.set("stopId", res.id); return res; });
+
+    p.then(function (res) {
+      state.calls = res.calls;
+      state.updatedAt = new Date();
+      state.error = null;
+      state.loaded = true;
+    }).catch(function (err) {
+      state.error = err && err.name === "AbortError" ? "The request timed out." : (err && err.message) || "Unknown error.";
+    }).finally(function () {
+      busy = false;
+      $("refresh").classList.remove("busy");
+      render();
+    });
+  }
+
+  function whenParts(t, now) {
+    var mins = Math.floor((t - now) / 60000);
+    if (mins < 1) return { num: "Now", unit: "", clock: false, soon: true };
+    if (mins < 60) return { num: String(mins), unit: "min", clock: false, soon: mins <= 2 };
+    return { num: timeFmt.format(new Date(t)), unit: "", clock: true, soon: false };
+  }
+
+  function statusLine(c, t) {
+    var aimed = Date.parse(c.aimedDepartureTime);
+    var diff = Math.round((t - aimed) / 60000);
+    var clock = timeFmt.format(new Date(t));
+    if (!c.realtime) return { text: clock + " · Scheduled", cls: "" };
+    if (diff >= 1) return { text: clock + " · " + diff + " min late (sched. " + timeFmt.format(new Date(aimed)) + ")", cls: "late" };
+    if (diff <= -1) return { text: clock + " · " + Math.abs(diff) + " min early", cls: "live" };
+    return { text: clock + " · On time", cls: "live" };
+  }
+
+  function render() {
+    var now = Date.now();
+    var dirs = $("dirs");
+    var msg = $("msg");
+    dirs.replaceChildren();
+    msg.replaceChildren();
+
+    var groups = {};
+    state.calls.forEach(function (c) {
+      var t = Date.parse(c.expectedDepartureTime);
+      if (isNaN(t) || t < now - 30000) return;
+      var key = (c.quay && c.quay.id) || "unknown";
+      (groups[key] = groups[key] || []).push({ call: c, t: t });
+    });
+
+    var keys = Object.keys(groups).sort();
+    keys.forEach(function (key) {
+      var list = groups[key].sort(function (a, b) { return a.t - b.t; }).slice(0, SHOW);
+      var firstDest = (list[0].call.destinationDisplay && list[0].call.destinationDisplay.frontText) || "Unknown";
+
+      var sec = el("section", "dir");
+      var h = el("h2", null, "Towards");
+      h.appendChild(el("span", "place", firstDest));
+      sec.appendChild(h);
+
+      var ol = el("ol", "deps");
+      list.forEach(function (d, i) {
+        var w = whenParts(d.t, now);
+        var s = statusLine(d.call, d.t);
+        var dest = (d.call.destinationDisplay && d.call.destinationDisplay.frontText) || firstDest;
+
+        var li = el("li", "dep" + (i === 0 ? " first" : "") + (w.soon ? " soon" : ""));
+        var when = el("div", "when");
+        when.appendChild(el("span", "num" + (w.clock ? " clock" : ""), w.num));
+        if (w.unit) when.appendChild(el("span", "unit", w.unit));
+        var meta = el("div", "meta");
+        meta.appendChild(el("div", "dest", dest));
+        meta.appendChild(el("div", "status " + s.cls, s.text));
+        li.appendChild(when);
+        li.appendChild(meta);
+        ol.appendChild(li);
+      });
+      sec.appendChild(ol);
+      dirs.appendChild(sec);
+    });
+
+    var upd = $("updated");
+    if (state.updatedAt) {
+      upd.textContent = "Updated " + timeFmt.format(state.updatedAt);
+    } else if (!state.error) {
+      upd.textContent = "Loading departures…";
+    } else {
+      upd.textContent = "";
+    }
+
+    if (state.error) {
+      var box = el("div", "msg");
+      box.appendChild(el("p", null, "Couldn't load departures."));
+      box.appendChild(el("p", null, state.error + (state.loaded ? " Showing the last update." : " Check your connection and tap refresh.")));
+      msg.appendChild(box);
+    } else if (state.loaded && !keys.length) {
+      var empty = el("div", "msg");
+      empty.appendChild(el("p", null, "No line 10 departures in the next 12 hours."));
+      empty.appendChild(el("p", null, "Check that the line is running today."));
+      msg.appendChild(empty);
+    }
+  }
+
+  $("refresh").addEventListener("click", load);
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible") load();
+  });
+  setInterval(function () { if (document.visibilityState === "visible") load(); }, 30000);
+  setInterval(render, 10000);
+
+  load();
+})();
+</script>
+</body>
+</html>
