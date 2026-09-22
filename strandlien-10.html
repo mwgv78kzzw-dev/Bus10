@@ -23,6 +23,10 @@
     --red: #d0202b;
     --late: #a84a08;
     --ok: #1a7548;
+    --ok-bg: #dcf1e6;
+    --go-bg: #eef4f8;
+    --warn-bg: #fff3d9;
+    --on-red: #ffffff;
     --sun: #f5a300;
     --moon: #7b93ad;
     --cloud: #b4c3cf;
@@ -43,6 +47,10 @@
       --red: #ff5a5f;
       --late: #f0a35e;
       --ok: #55c58a;
+      --ok-bg: #1d3b2d;
+      --go-bg: #1d3140;
+      --warn-bg: #3a2b12;
+      --on-red: #1a0508;
       --sun: #ffc247;
       --moon: #e6eef5;
       --cloud: #b9c7d3;
@@ -133,52 +141,72 @@
   }
   .w-temp { margin-top: -0.5rem; font: 700 1.5rem/1 var(--display); font-variant-numeric: tabular-nums; }
 
-  #updated { flex: none; margin: 0.7rem 0.1rem 0; color: var(--muted); font-size: max(12px, 0.85rem); min-height: 1.3em; }
+  .alert { flex: none; margin-top: 0.7rem; background: var(--warn-bg); border: 1px solid var(--line); border-left: 5px solid var(--late); border-radius: 0.8rem; }
+  .alert[hidden] { display: none; }
+  .alert-btn { width: 100%; display: flex; align-items: center; gap: 0.5rem; padding: 0.55rem 0.7rem; background: none; border: 0; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+  .alert-btn:focus-visible { outline: 3px solid var(--red); outline-offset: 2px; border-radius: 0.6rem; }
+  .alert-btn svg { flex: none; width: 1.2rem; height: 1.2rem; min-width: 16px; min-height: 16px; color: var(--late); }
+  .alert-tag { flex: none; font-weight: 700; color: var(--late); font-size: max(13px, 0.95rem); }
+  .alert-sum { flex: 1; min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: max(13px, 0.95rem); font-weight: 600; }
+  .alert-n { flex: none; padding: 0.1rem 0.45rem; border-radius: 999px; background: var(--late); color: var(--bg); font-weight: 700; font-size: max(12px, 0.8rem); }
+  .alert-n:empty { display: none; }
+  .alert-chev { transition: transform 0.2s; }
+  .alert.open .alert-chev { transform: rotate(180deg); }
+  .alert-body { padding: 0 0.8rem 0.7rem 2.3rem; max-height: 35vh; overflow: auto; font-size: max(13px, 0.9rem); }
+  .alert-item + .alert-item { margin-top: 0.6rem; }
+  .alert-item p { margin: 0.15rem 0 0; color: var(--muted); }
 
-  /* Directions fill the space that's left: stacked in portrait, side by side in landscape. */
-  #dirs {
-    flex: 1 1 auto;
-    display: flex; flex-direction: column; gap: 0.9rem;
-    margin-top: 0.9rem;
+  .rain { flex: none; display: flex; align-items: center; gap: 0.5rem; margin-top: 0.6rem; color: var(--muted); font-size: max(14px, 1rem); }
+  .rain[hidden] { display: none; }
+  .rain svg { flex: none; width: 1.3rem; height: 1.3rem; min-width: 18px; min-height: 18px; }
+  .rain.wet { color: var(--rain); font-weight: 600; }
+
+  .bar { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; margin-top: 0.5rem; }
+  #updated { margin: 0 0.1rem; color: var(--muted); font-size: max(12px, 0.85rem); min-height: 1.3em; }
+  .walk { display: inline-flex; align-items: center; gap: 0.15rem; margin: -0.35rem 0; }
+  .walk .wi { font-size: max(16px, 1.15rem); margin-right: 0.15rem; }
+  .walk button {
+    width: 44px; height: 44px; padding: 0; border-radius: 50%;
+    border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+    font-family: var(--text); font-weight: 600; font-size: 1.5rem; line-height: 1;
+    display: grid; place-items: center; cursor: pointer; touch-action: manipulation; user-select: none; -webkit-user-select: none;
   }
+  .walk button:focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
+  .walk output { min-width: 3.4rem; text-align: center; font-weight: 600; font-size: max(14px, 1rem); }
+
+  /* Avgangskort: tre kompakte kolonner per retning */
+  #dirs { flex: none; display: flex; flex-direction: column; gap: 0.7rem; margin-top: 0.8rem; }
   @media (orientation: landscape) {
-    #dirs { flex-direction: row; }
+    #dirs { flex-direction: row; align-items: flex-start; }
+    .dir { flex: 1 1 0; min-width: 0; }
   }
-  .dir {
-    flex: 1 1 0; min-width: 0;
-    display: flex; flex-direction: column;
-    background: var(--panel); border: 1px solid var(--line);
-    border-radius: 1rem; padding: 1rem 1.2rem 0.3rem;
+  .dir { flex: 0 0 auto; background: var(--panel); border: 1px solid var(--line); border-radius: 1rem; padding: 0.8rem 0.9rem 0.9rem; }
+  .dir-h { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.6rem; }
+  .to {
+    flex: 1; min-width: 0; margin: 0; font-weight: 600; font-size: 1.2rem; line-height: 1.15;
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere;
   }
-  .dir h2 { margin: 0 0 0.3rem; font-size: max(12px, 0.9rem); font-weight: 500; color: var(--muted); }
-  .dir h2 .place {
-    display: block; margin-top: 0.1rem;
-    font: 600 1.5rem/1.15 var(--text); color: var(--ink);
-    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
-    overflow: hidden; overflow-wrap: anywhere;
-  }
-
-  .deps { flex: 1; display: flex; flex-direction: column; list-style: none; margin: 0; padding: 0; }
-  .dep {
-    flex: 1 1 0; padding: 0.35rem 0;
-    display: grid; grid-template-columns: 8.2rem 1fr;
-    align-items: center; gap: 0.6rem;
-    border-top: 1px solid var(--line);
-  }
-  .dep:first-child { border-top: 0; }
-  .dep.first { flex: 2 1 0; }
-  .when { white-space: nowrap; }
-  .num { font: 700 2.4rem/1 var(--display); font-variant-numeric: tabular-nums; }
-  .unit { font-family: var(--text); font-weight: 600; font-size: max(14px, 1.1rem); color: var(--muted); margin-left: 0.25rem; }
-  .dep.first .num { font-size: 4.6rem; }
-  .dep.first .num.clock { font-size: 2.5rem; }
-  .dep.first .num.word { font-size: 3.4rem; }
-  .dep.soon .num { color: var(--red); }
-  .dest { font-weight: 600; font-size: max(14px, 1.05rem); }
-  .status { color: var(--muted); font-size: max(13px, 1rem); font-weight: 600; }
-  .dest + .status { font-size: max(12px, 0.9rem); font-weight: 500; }
-  .status.late { color: var(--late); }
-  .status.live { color: var(--ok); }
+  .to .mot { color: var(--muted); font-weight: 500; font-size: max(12px, 0.85rem); margin-right: 0.35rem; }
+  .chip { flex: none; padding: 0.3rem 0.7rem; border-radius: 999px; background: var(--ok-bg); color: var(--ok); font-weight: 700; font-size: max(13px, 0.9rem); white-space: nowrap; }
+  .chip.now { background: var(--red); color: var(--on-red); }
+  .chip.miss { background: var(--bg); color: var(--muted); }
+  .cols { display: grid; gap: 0.4rem; align-items: start; }
+  .col { min-width: 0; padding: 0.4rem 0.3rem 0.5rem; border-radius: 0.7rem; text-align: center; }
+  .col.go { background: var(--go-bg); }
+  .col.dim { opacity: 0.4; }
+  .col .v { white-space: nowrap; line-height: 1; }
+  .col .n { font: 700 2.3rem/1 var(--display); font-variant-numeric: tabular-nums; }
+  .col .n.clock { font-size: 1.6rem; }
+  .col.go .n { font-size: 3.2rem; }
+  .col.go .n.clock { font-size: 2rem; }
+  .col.go .n.word { font-size: 3rem; }
+  .col .u { font-family: var(--text); font-weight: 600; font-size: max(12px, 0.85rem); color: var(--muted); margin-left: 0.2rem; }
+  .col.soon .n { color: var(--red); }
+  .col .t { margin-top: 0.25rem; font-size: max(12px, 0.85rem); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .col .s { margin-top: 0.1rem; font-size: max(12px, 0.85rem); font-weight: 600; color: var(--muted); }
+  .col .s.late { color: var(--late); }
+  .col .s.live { color: var(--ok); }
+  .col .d { margin-top: 0.1rem; font-size: max(11px, 0.75rem); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   .msg {
     flex: none; margin-top: 0.9rem; padding: 0.8rem 1rem; border-radius: 0.8rem;
@@ -233,7 +261,31 @@
     </div>
   </header>
 
-  <div id="updated" role="status" aria-live="polite">Laster avganger…</div>
+  <div class="alert" id="alert" hidden>
+    <button class="alert-btn" id="alert-btn" type="button" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span class="alert-tag">Avvik</span>
+      <span class="alert-sum" id="alert-sum"></span>
+      <span class="alert-n" id="alert-n"></span>
+      <svg class="alert-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="alert-body" id="alert-body" hidden></div>
+  </div>
+
+  <div class="rain" id="rain" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 12a11.05 11.05 0 0 0-22 0zm-5 7a3 3 0 0 1-6 0v-7"/></svg>
+    <span id="rain-text"></span>
+  </div>
+
+  <div class="bar">
+    <div id="updated" role="status" aria-live="polite">Laster avganger…</div>
+    <div class="walk" role="group" aria-label="Gangtid til stoppet">
+      <span class="wi" aria-hidden="true">🚶</span>
+      <button type="button" id="walk-minus" aria-label="Mindre gangtid">−</button>
+      <output id="walk-val" aria-live="polite">5 min</output>
+      <button type="button" id="walk-plus" aria-label="Mer gangtid">+</button>
+    </div>
+  </div>
   <div id="dirs"></div>
   <div id="msg"></div>
 
@@ -264,7 +316,7 @@
     "      realtime aimedDepartureTime expectedDepartureTime" +
     "      destinationDisplay { frontText }" +
     "      quay { id publicCode }" +
-    "      serviceJourney { line { publicCode } }" +
+    "      serviceJourney { line { id publicCode } }" +
     "    }" +
     "  }" +
     "}";
@@ -278,8 +330,8 @@
     set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
   };
 
-  var state = { calls: [], updatedAt: null, error: null, loaded: false, lat: null, lon: null };
-  var weather = { at: 0, busy: false };
+  var state = { calls: [], updatedAt: null, error: null, loaded: false, lat: null, lon: null, lineId: null, walk: 5 };
+  var weather = { at: 0, busy: false, code: null, hourly: null };
   var busy = false;
 
   function $(id) { return document.getElementById(id); }
@@ -359,7 +411,12 @@
     p.then(function (res) {
       state.calls = res.calls;
       if (typeof res.lat === "number" && typeof res.lon === "number") { state.lat = res.lat; state.lon = res.lon; }
+      var c0 = res.calls[0];
+      var lid = c0 && c0.serviceJourney && c0.serviceJourney.line && c0.serviceJourney.line.id;
+      if (lid && /^[\w:.-]+$/.test(lid)) state.lineId = lid;
       loadWeather();
+      loadRain();
+      loadAlerts();
       state.updatedAt = new Date();
       state.error = null;
       state.loaded = true;
@@ -476,6 +533,13 @@
       $("weather").setAttribute("aria-label", "Været nå: " + deg + " grader");
       $("weather").hidden = false;
       weather.at = Date.now();
+      weather.code = code;
+      weather.hourly = j.properties.timeseries.slice(0, 10).map(function (x) {
+        var n1 = x.data && x.data.next_1_hours;
+        var amt = n1 && n1.details && n1.details.precipitation_amount;
+        return { t: Date.parse(x.time), rate: typeof amt === "number" ? amt : null, code: n1 && n1.summary && n1.summary.symbol_code };
+      });
+      updateRain();
     }).catch(function () {
       /* keep the last shown weather, or none */
     }).finally(function () { weather.busy = false; });
@@ -616,6 +680,151 @@
     }).finally(function () { news.busy = false; });
   }
 
+  // ---- Regnvarsel med tekst (MET nowcast, med timesvarsel som reserve) ----
+  var rain = { points: null, at: 0, busy: false };
+  var THR = 0.1; // mm/t regnes som nedbør
+  var RAIN_WORDS = {
+    rain:  { now: "Regner nå", light: "Lett regn nå", heavy: "Kraftig regn nå", noun: "Regn" },
+    snow:  { now: "Snør nå", light: "Lett snøfall nå", heavy: "Kraftig snøfall nå", noun: "Snø" },
+    sleet: { now: "Sludd nå", light: "Lett sludd nå", heavy: "Kraftig sludd nå", noun: "Sludd" }
+  };
+  function kindOf(code) {
+    code = code || "";
+    return code.indexOf("snow") !== -1 ? "snow" : code.indexOf("sleet") !== -1 ? "sleet" : "rain";
+  }
+  function coords() {
+    return { lat: typeof state.lat === "number" ? state.lat : 60.39, lon: typeof state.lon === "number" ? state.lon : 5.32 };
+  }
+  function loadRain() {
+    if (rain.busy || Date.now() - rain.at < 5 * 60000) return;
+    rain.busy = true;
+    var c = coords();
+    var url = "https://api.met.no/weatherapi/nowcast/2.0/complete?lat=" + c.lat.toFixed(4) + "&lon=" + c.lon.toFixed(4);
+    getJSON(url).then(function (j) {
+      var cov = j.properties && j.properties.meta && j.properties.meta.radar_coverage;
+      if (cov && cov !== "ok") throw new Error("Ingen radardekning");
+      var pts = (j.properties.timeseries || []).map(function (x) {
+        var d = x.data && x.data.instant && x.data.instant.details;
+        var n1 = x.data && x.data.next_1_hours;
+        return {
+          t: Date.parse(x.time),
+          rate: d && typeof d.precipitation_rate === "number" ? d.precipitation_rate : null,
+          code: n1 && n1.summary && n1.summary.symbol_code
+        };
+      }).filter(function (p) { return p.rate !== null; });
+      if (pts.length < 3) throw new Error("For lite data");
+      rain.points = pts;
+    }).catch(function () {
+      rain.points = null; // bruk timesvarselet i stedet
+    }).finally(function () {
+      rain.at = Date.now();
+      rain.busy = false;
+      updateRain();
+    });
+  }
+  function rainSummary() {
+    var now = Date.now();
+    var noneWord = kindOf(weather.code) === "rain" ? "regn" : "nedbør";
+    var list;
+    if (rain.points) {
+      list = rain.points.filter(function (p) { return p.t >= now - 5 * 60000; });
+      if (list.length >= 2) {
+        var first = list[0];
+        var horizon = Math.max(10, Math.round((list[list.length - 1].t - now) / 60000));
+        if (first.rate >= THR) {
+          var W = RAIN_WORDS[kindOf(first.code || weather.code)];
+          var lead = first.rate >= 2.5 ? W.heavy : first.rate < 0.5 ? W.light : W.now;
+          var dry = list.filter(function (p) { return p.rate < THR; })[0];
+          return { wet: true, text: dry
+            ? lead + " – opphold om " + Math.max(5, Math.round((dry.t - now) / 60000)) + " min"
+            : lead + " – ingen opphold de neste " + horizon + " min" };
+        }
+        var wet = list.filter(function (p) { return p.rate >= THR; })[0];
+        if (wet) {
+          var mins = Math.max(5, Math.round((wet.t - now) / 60000));
+          return { wet: mins <= 30, text: RAIN_WORDS[kindOf(wet.code || weather.code)].noun + " om " + mins + " min" };
+        }
+        return { wet: false, text: "Ingen " + noneWord + " de neste " + horizon + " min" };
+      }
+    }
+    // Reserve: timesvarsel fra Yr
+    list = (weather.hourly || []).filter(function (p) { return p.t + 3600000 > now && typeof p.rate === "number"; }).slice(0, 6);
+    if (!list.length) return null;
+    if (list[0].rate >= THR) {
+      var H = RAIN_WORDS[kindOf(list[0].code || weather.code)];
+      var lead2 = list[0].rate >= 2.5 ? H.heavy : list[0].rate < 0.5 ? H.light : H.now;
+      var dry2 = list.filter(function (p, i) { return i > 0 && p.rate < THR; })[0];
+      return { wet: true, text: lead2 + (dry2 ? " – opphold rundt kl. " + timeFmt.format(new Date(dry2.t)) : "") };
+    }
+    var wet2 = list.filter(function (p) { return p.rate >= THR; })[0];
+    if (wet2) {
+      return { wet: wet2.t - now <= 30 * 60000, text: RAIN_WORDS[kindOf(wet2.code || weather.code)].noun + " rundt kl. " + timeFmt.format(new Date(wet2.t)) };
+    }
+    return { wet: false, text: "Ingen " + noneWord + " de neste " + list.length + " timene" };
+  }
+  function updateRain() {
+    var box = $("rain");
+    var r = rainSummary();
+    if (!r) { box.hidden = true; return; }
+    $("rain-text").textContent = r.text;
+    box.classList.toggle("wet", !!r.wet);
+    box.hidden = false;
+  }
+
+  // ---- Avvik på linja (Entur situasjoner) ----
+  var alerts = { items: [], at: 0, busy: false };
+  function pickText(list) {
+    if (!Array.isArray(list) || !list.length) return "";
+    var no = list.filter(function (x) { return x && /^(no|nb|nn)/i.test(x.language || ""); })[0];
+    return String((no || list[0]).value || "").replace(/\s+/g, " ").trim();
+  }
+  function loadAlerts() {
+    if (alerts.busy || !state.lineId || Date.now() - alerts.at < 4 * 60000) return;
+    alerts.busy = true;
+    var q = 'query { line(id: "' + state.lineId + '") { situations { summary { value language } description { value language } validityPeriod { startTime endTime } } } }';
+    getJSON(GRAPHQL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "ET-Client-Name": CLIENT },
+      body: JSON.stringify({ query: q })
+    }).then(function (j) {
+      if (!j.data || !j.data.line) throw new Error("Ingen avviksdata");
+      var now = Date.now(), seen = {}, out = [];
+      (j.data.line.situations || []).forEach(function (sit) {
+        var vp = sit.validityPeriod || {};
+        var st = vp.startTime ? Date.parse(vp.startTime) : -Infinity;
+        var en = vp.endTime ? Date.parse(vp.endTime) : Infinity;
+        if (!(st <= now && now <= en)) return;
+        var sum = pickText(sit.summary), desc = pickText(sit.description);
+        var key = sum || desc;
+        if (!key || seen[key]) return;
+        seen[key] = true;
+        out.push({ summary: sum || desc, description: desc });
+      });
+      alerts.items = out;
+      renderAlert();
+    }).catch(function () {
+      /* avvik er et tillegg: feil skal aldri påvirke avgangene */
+    }).finally(function () {
+      alerts.at = Date.now();
+      alerts.busy = false;
+    });
+  }
+  function renderAlert() {
+    var box = $("alert");
+    if (!alerts.items.length) { box.hidden = true; return; }
+    box.hidden = false;
+    $("alert-sum").textContent = alerts.items[0].summary;
+    $("alert-n").textContent = alerts.items.length > 1 ? "+" + (alerts.items.length - 1) : "";
+    var body = $("alert-body");
+    body.replaceChildren();
+    alerts.items.forEach(function (a) {
+      var d = el("div", "alert-item");
+      d.appendChild(el("b", null, a.summary));
+      if (a.description && a.description !== a.summary) d.appendChild(el("p", null, a.description));
+      body.appendChild(d);
+    });
+  }
+
   function whenParts(t, now) {
     var mins = Math.floor((t - now) / 60000);
     if (mins < 1) return { num: "Nå", unit: "", clock: false, word: true, soon: true };
@@ -623,18 +832,18 @@
     return { num: timeFmt.format(new Date(t)), unit: "", clock: true, soon: false };
   }
 
-  function statusLine(c, t) {
+  function statusShort(c, t) {
     var aimed = Date.parse(c.aimedDepartureTime);
     var diff = Math.round((t - aimed) / 60000);
-    var clock = timeFmt.format(new Date(t));
-    if (!c.realtime) return { text: clock + " · Rutetid", cls: "" };
-    if (diff >= 1) return { text: clock + " · " + diff + " min forsinket", cls: "late" };
-    if (diff <= -1) return { text: clock + " · " + Math.abs(diff) + " min tidlig", cls: "live" };
-    return { text: clock + " · I rute", cls: "live" };
+    if (!c.realtime) return { text: "Rutetid", cls: "" };
+    if (diff >= 1) return { text: diff + " min sen", cls: "late" };
+    if (diff <= -1) return { text: Math.abs(diff) + " min tidlig", cls: "live" };
+    return { text: "I rute", cls: "live" };
   }
 
   function render() {
     var now = Date.now();
+    var walkMs = state.walk * 60000;
     var dirs = $("dirs");
     var msg = $("msg");
     dirs.replaceChildren();
@@ -653,29 +862,50 @@
       var list = groups[key].sort(function (a, b) { return a.t - b.t; }).slice(0, SHOW);
       var firstDest = (list[0].call.destinationDisplay && list[0].call.destinationDisplay.frontText) || "Ukjent";
 
-      var sec = el("section", "dir");
-      var h = el("h2", null, "Mot");
-      h.appendChild(el("span", "place", firstDest));
-      sec.appendChild(h);
+      // Første avgang du rekker, gitt gangtiden
+      var goIdx = -1;
+      list.forEach(function (d, i) {
+        d.ok = d.t - now >= walkMs;
+        if (goIdx < 0 && d.ok) goIdx = i;
+      });
 
-      var ol = el("ol", "deps");
+      var sec = el("section", "dir");
+      var head = el("div", "dir-h");
+      var title = el("h2", "to");
+      title.appendChild(el("span", "mot", "Mot"));
+      title.appendChild(document.createTextNode(firstDest));
+      head.appendChild(title);
+      if (state.walk > 0) {
+        if (goIdx < 0) {
+          head.appendChild(el("span", "chip miss", "Rekker ikke"));
+        } else {
+          var leave = Math.floor((list[goIdx].t - now - walkMs) / 60000);
+          head.appendChild(leave <= 0 ? el("span", "chip now", "Gå nå") : el("span", "chip", "Gå om " + leave + " min"));
+        }
+      }
+      sec.appendChild(head);
+
+      var cols = el("div", "cols");
+      var tracks = [];
+      for (var k = 0; k < SHOW; k++) tracks.push(k === goIdx ? "1.35fr" : "1fr");
+      cols.style.gridTemplateColumns = tracks.join(" ");
+
       list.forEach(function (d, i) {
         var w = whenParts(d.t, now);
-        var s = statusLine(d.call, d.t);
+        var s = statusShort(d.call, d.t);
         var dest = (d.call.destinationDisplay && d.call.destinationDisplay.frontText) || firstDest;
-
-        var li = el("li", "dep" + (i === 0 ? " first" : "") + (w.soon ? " soon" : ""));
-        var when = el("div", "when");
-        when.appendChild(el("span", "num" + (w.clock ? " clock" : "") + (w.word ? " word" : ""), w.num));
-        if (w.unit) when.appendChild(el("span", "unit", w.unit));
-        var meta = el("div", "meta");
-        if (dest !== firstDest) meta.appendChild(el("div", "dest", dest));
-        meta.appendChild(el("div", "status " + s.cls, s.text));
-        li.appendChild(when);
-        li.appendChild(meta);
-        ol.appendChild(li);
+        var dim = state.walk > 0 && !d.ok;
+        var col = el("div", "col" + (i === goIdx ? " go" : "") + (dim ? " dim" : "") + (w.soon && !dim ? " soon" : ""));
+        var v = el("div", "v");
+        v.appendChild(el("span", "n" + (w.clock ? " clock" : "") + (w.word ? " word" : ""), w.num));
+        if (w.unit) v.appendChild(el("span", "u", w.unit));
+        col.appendChild(v);
+        if (!w.clock) col.appendChild(el("div", "t", timeFmt.format(new Date(d.t))));
+        col.appendChild(el("div", "s " + s.cls, s.text));
+        if (dest !== firstDest) col.appendChild(el("div", "d", dest));
+        cols.appendChild(col);
       });
-      sec.appendChild(ol);
+      sec.appendChild(cols);
       dirs.appendChild(sec);
     });
 
@@ -701,11 +931,33 @@
     }
   }
 
+  // Gangtid (0–30 min), huskes på enheten
+  var wv = parseInt(store.get("walkMin"), 10);
+  state.walk = isFinite(wv) ? Math.max(0, Math.min(30, wv)) : 5;
+  function showWalk() { $("walk-val").textContent = state.walk ? state.walk + " min" : "av"; }
+  function setWalk(v) {
+    state.walk = Math.max(0, Math.min(30, v));
+    store.set("walkMin", String(state.walk));
+    showWalk();
+    render();
+  }
+  $("walk-minus").addEventListener("click", function () { setWalk(state.walk - 1); });
+  $("walk-plus").addEventListener("click", function () { setWalk(state.walk + 1); });
+  showWalk();
+  $("alert-btn").addEventListener("click", function () {
+    var body = $("alert-body");
+    var open = body.hidden;
+    body.hidden = !open;
+    this.setAttribute("aria-expanded", String(open));
+    $("alert").classList.toggle("open", open);
+  });
+
   document.addEventListener("visibilitychange", function () {
     if (document.visibilityState === "visible") { load(); loadNews(); }
   });
   setInterval(function () { if (document.visibilityState === "visible") load(); }, 30000);
   setInterval(render, 10000);
+  setInterval(updateRain, 60000);
   setInterval(loadNews, 60000);
 
   load();
