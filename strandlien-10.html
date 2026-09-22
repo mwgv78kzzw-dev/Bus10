@@ -244,6 +244,18 @@
   .tk-in { margin-left: 0.45em; color: var(--muted); }
   .tk-dot { margin: 0 1.1rem; color: var(--red); }
 
+  /* Postlevering */
+  .post { flex: none; margin-top: 0.7rem; background: var(--panel); border: 1px solid var(--line); border-radius: 1rem; padding: 0.8rem 0.9rem 0.9rem; }
+  .post-h { display: flex; align-items: center; gap: 0.55rem; margin-bottom: 0.35rem; }
+  .post-ic { flex: none; font-size: 1.3rem; line-height: 1; }
+  .post-h h2 { flex: 1; min-width: 0; margin: 0; font-weight: 600; font-size: 1.05rem; }
+  .post-h h2 .pnr { color: var(--muted); font-weight: 500; font-size: max(12px, 0.85rem); margin-left: 0.35rem; }
+  .post p { margin: 0 0 0.55rem; font-size: max(13px, 0.95rem); color: var(--ink); }
+  .post p b { color: var(--red); }
+  .post-note { color: var(--muted); font-size: max(11px, 0.8rem); }
+  .post a { display: inline-flex; align-items: center; gap: 0.3rem; color: var(--red); font-weight: 600; font-size: max(13px, 0.9rem); text-decoration: none; }
+  .post a:hover, .post a:focus-visible { text-decoration: underline; }
+
   footer { flex: none; margin: 0.5rem 0.1rem 0; color: var(--muted); font-size: max(11px, 0.75rem); }
 </style>
 </head>
@@ -292,6 +304,16 @@
   <div class="ticker" id="ticker" role="region" aria-label="Nyheter fra NRK" hidden>
     <span class="tk-label">NRK</span>
     <div class="tk-view"><div class="tk-track" id="tk-track"></div></div>
+  </div>
+
+  <div class="post" id="post" hidden>
+    <div class="post-h">
+      <span class="post-ic" aria-hidden="true">✉️</span>
+      <h2>Postlevering <span class="pnr">5057</span></h2>
+    </div>
+    <p id="post-next"></p>
+    <p class="post-note">Beregnet ut fra kjent to-ukers syklus. Kan avvike rundt høytider/helligdager.</p>
+    <a href="https://www.posten.no/levering-av-post" target="_blank" rel="noopener noreferrer">Sjekk mot Posten →</a>
   </div>
 
   <footer>Data fra Entur, Meteorologisk institutt og NRK.</footer>
@@ -931,6 +953,58 @@
     }
   }
 
+  // Postlevering (5057) — beregnet lokalt ut fra kjent to-ukers syklus.
+  // Ankeret er en bekreftet leveringsdag hentet fra posten.no sin egen sjekk.
+  var POST_ANCHOR = new Date(2026, 8, 23); // onsdag 23. september 2026
+  var dayNames = ["søndag", "mandag", "tirsdag", "onsdag", "torsdag", "fredag", "lørdag"];
+  var monthNames = ["januar", "februar", "mars", "april", "mai", "juni", "juli", "august", "september", "oktober", "november", "desember"];
+  function dateOnly(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+  function sameDate(a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
+  function nextDeliveryDates(fromDate, count) {
+    var d = new Date(POST_ANCHOR.getFullYear(), POST_ANCHOR.getMonth(), POST_ANCHOR.getDate());
+    var isDelivery = true;
+    var out = [];
+    var guard = 0;
+    while (out.length < count && guard < 4000) {
+      var dow = d.getDay();
+      if (dow !== 0 && dow !== 6) {
+        if (isDelivery && d >= fromDate) out.push(new Date(d));
+        isDelivery = !isDelivery;
+      }
+      d.setDate(d.getDate() + 1);
+      guard++;
+    }
+    return out;
+  }
+  function fmtDay(d, today) {
+    var label = dayNames[d.getDay()] + " " + d.getDate() + ". " + monthNames[d.getMonth()];
+    if (sameDate(d, today)) return "i dag " + label;
+    var tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+    if (sameDate(d, tomorrow)) return "i morgen " + label;
+    return label;
+  }
+  function renderPost() {
+    var box = $("post");
+    if (!box) return;
+    var today = dateOnly(new Date());
+    var dates = nextDeliveryDates(today, 1);
+    if (!dates.length) { box.hidden = true; return; }
+    box.hidden = false;
+    $("post-next").replaceChildren(
+      document.createTextNode("Neste levering "),
+      el("b", null, fmtDay(dates[0], today))
+    );
+  }
+  // Kjør ved oppstart, og planlegg ny kjøring rett over midnatt slik at
+  // "i dag"/"i morgen" og datoen alltid stemmer uten at siden må lastes på nytt.
+  function scheduleMidnightRefresh() {
+    var now = new Date();
+    var next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 5);
+    setTimeout(function () { renderPost(); scheduleMidnightRefresh(); }, next - now);
+  }
+  renderPost();
+  scheduleMidnightRefresh();
+
   // Gangtid (0–30 min), huskes på enheten
   var wv = parseInt(store.get("walkMin"), 10);
   state.walk = isFinite(wv) ? Math.max(0, Math.min(30, wv)) : 5;
@@ -953,7 +1027,7 @@
   });
 
   document.addEventListener("visibilitychange", function () {
-    if (document.visibilityState === "visible") { load(); loadNews(); }
+    if (document.visibilityState === "visible") { load(); loadNews(); renderPost(); }
   });
   setInterval(function () { if (document.visibilityState === "visible") load(); }, 30000);
   setInterval(render, 10000);
