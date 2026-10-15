@@ -244,17 +244,24 @@
   .tk-in { margin-left: 0.45em; color: var(--muted); }
   .tk-dot { margin: 0 1.1rem; color: var(--red); }
 
-  /* Postlevering */
-  .post { flex: none; margin-top: 0.7rem; background: var(--panel); border: 1px solid var(--line); border-radius: 1rem; padding: 0.8rem 0.9rem 0.9rem; }
-  .post-h { display: flex; align-items: center; gap: 0.55rem; margin-bottom: 0.35rem; }
-  .post-ic { flex: none; font-size: 1.3rem; line-height: 1; }
-  .post-h h2 { flex: 1; min-width: 0; margin: 0; font-weight: 600; font-size: 1.05rem; }
-  .post-h h2 .pnr { color: var(--muted); font-weight: 500; font-size: max(12px, 0.85rem); margin-left: 0.35rem; }
-  .post p { margin: 0 0 0.55rem; font-size: max(13px, 0.95rem); color: var(--ink); }
-  .post p b { color: var(--red); }
-  .post-note { color: var(--muted); font-size: max(11px, 0.8rem); }
-  .post a { display: inline-flex; align-items: center; gap: 0.3rem; color: var(--red); font-weight: 600; font-size: max(13px, 0.9rem); text-decoration: none; }
-  .post a:hover, .post a:focus-visible { text-decoration: underline; }
+  /* Kalenderkort */
+  .kal { flex: none; margin-top: 0.7rem; background: var(--panel); border: 1px solid var(--line); border-radius: 1rem; padding: 0.7rem 0.9rem 0.8rem; }
+  .kal[hidden] { display: none; }
+  .kal-h { display: flex; align-items: center; gap: 0.45rem; color: var(--muted); font-weight: 600; font-size: max(12px, 0.85rem); margin-bottom: 0.45rem; }
+  .kal-h svg { flex: none; width: 1.05rem; height: 1.05rem; min-width: 15px; min-height: 15px; }
+  .kal-item { display: flex; align-items: center; gap: 0.7rem; padding: 0.4rem 0; }
+  .kal-item + .kal-item { border-top: 1px solid var(--line); }
+  .kal-when { flex: none; width: 4.4rem; font-weight: 700; font-size: max(13px, 0.9rem); line-height: 1.2; }
+  .kal-when .day { display: block; color: var(--muted); font-weight: 600; font-size: max(11px, 0.78rem); text-transform: capitalize; }
+  .kal-when.today .day { color: var(--ok); }
+  .kal-time { flex: none; width: 4.3rem; font-variant-numeric: tabular-nums; font-size: max(13px, 0.9rem); color: var(--muted); line-height: 1.2; }
+  .kal-dot { flex: none; width: 0.85rem; height: 0.85rem; border-radius: 50%; }
+  .kal-dot.rest { background: #1a1a1a; }
+  .kal-dot.papp { background: linear-gradient(135deg, #2f7fc4 50%, #8a4fae 50%); }
+  @media (prefers-color-scheme: dark) { .kal-dot.rest { background: #cfd6db; } }
+  .kal-body { flex: 1; min-width: 0; }
+  .kal-title { font-weight: 600; font-size: max(14px, 0.98rem); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .kal-loc { font-size: max(12px, 0.82rem); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   footer { flex: none; margin: 0.5rem 0.1rem 0; color: var(--muted); font-size: max(11px, 0.75rem); }
 </style>
@@ -306,14 +313,12 @@
     <div class="tk-view"><div class="tk-track" id="tk-track"></div></div>
   </div>
 
-  <div class="post" id="post" hidden>
-    <div class="post-h">
-      <span class="post-ic" aria-hidden="true">✉️</span>
-      <h2>Postlevering <span class="pnr">5057</span></h2>
+  <div class="kal" id="kal" hidden>
+    <div class="kal-h">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+      <span>Tømmekalender</span>
     </div>
-    <p id="post-next"></p>
-    <p class="post-note">Beregnet ut fra kjent to-ukers syklus. Kan avvike rundt høytider/helligdager.</p>
-    <a href="https://www.posten.no/levering-av-post" target="_blank" rel="noopener noreferrer">Sjekk mot Posten →</a>
+    <div class="kal-list" id="kal-list"></div>
   </div>
 
   <footer>Data fra Entur, Meteorologisk institutt og NRK.</footer>
@@ -847,6 +852,65 @@
     });
   }
 
+  // ---- Tømmekalender (faste henteruter, regnet ut lokalt – ingen nettkall) ----
+  var dayFmt = new Intl.DateTimeFormat("no", { weekday: "short", timeZone: "UTC" });
+  var dateFmt = new Intl.DateTimeFormat("no", { day: "numeric", month: "short", timeZone: "UTC" });
+  var KAL_SHOW = 4;
+
+  // Ankerdato = en kjent hentedag for ruten; intervallDager = hvor ofte den gjentas.
+  var WASTE_RULES = [
+    { key: "rest", label: "Restavfall", anchor: "2026-10-05", days: 7 },
+    { key: "papp", label: "Papir/plast", anchor: "2026-10-22", days: 28 }
+  ];
+
+  function parseYMD(s) {
+    var p = s.split("-").map(Number);
+    return Date.UTC(p[0], p[1] - 1, p[2]);
+  }
+  function todayUTCms() {
+    var f = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Oslo" });
+    return parseYMD(f.format(new Date()));
+  }
+  function wasteOccurrences(rule, fromMs, count) {
+    var anchor = parseYMD(rule.anchor);
+    var step = rule.days * 86400000;
+    var n = Math.ceil((fromMs - anchor) / step);
+    if (n < 0) n = 0;
+    var out = [], t = anchor + n * step;
+    while (out.length < count) { out.push(t); t += step; }
+    return out;
+  }
+  function kalRow(it) {
+    var today = todayUTCms();
+    var isToday = it.t === today;
+    var isTomorrow = it.t === today + 86400000;
+
+    var row = el("div", "kal-item");
+    var when = el("div", "kal-when" + (isToday ? " today" : ""));
+    when.appendChild(document.createTextNode(dateFmt.format(it.t)));
+    when.appendChild(el("span", "day", isToday ? "I dag" : isTomorrow ? "I morgen" : dayFmt.format(it.t)));
+    row.appendChild(when);
+    row.appendChild(el("div", "kal-dot " + it.rule.key));
+    var body = el("div", "kal-body");
+    body.appendChild(el("div", "kal-title", it.rule.label));
+    row.appendChild(body);
+    return row;
+  }
+  function renderKal() {
+    var box = $("kal"), list = $("kal-list");
+    list.replaceChildren();
+    var fromMs = todayUTCms();
+    var items = [];
+    WASTE_RULES.forEach(function (rule) {
+      wasteOccurrences(rule, fromMs, 2).forEach(function (t) { items.push({ t: t, rule: rule }); });
+    });
+    items.sort(function (a, b) { return a.t - b.t; });
+    items = items.slice(0, KAL_SHOW);
+    if (!items.length) { box.hidden = true; return; }
+    box.hidden = false;
+    items.forEach(function (it) { list.appendChild(kalRow(it)); });
+  }
+
   function whenParts(t, now) {
     var mins = Math.floor((t - now) / 60000);
     if (mins < 1) return { num: "Nå", unit: "", clock: false, word: true, soon: true };
@@ -953,58 +1017,6 @@
     }
   }
 
-  // Postlevering (5057) — beregnet lokalt ut fra kjent to-ukers syklus.
-  // Ankeret er en bekreftet leveringsdag hentet fra posten.no sin egen sjekk.
-  var POST_ANCHOR = new Date(2026, 8, 23); // onsdag 23. september 2026
-  var dayNames = ["søndag", "mandag", "tirsdag", "onsdag", "torsdag", "fredag", "lørdag"];
-  var monthNames = ["januar", "februar", "mars", "april", "mai", "juni", "juli", "august", "september", "oktober", "november", "desember"];
-  function dateOnly(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
-  function sameDate(a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
-  function nextDeliveryDates(fromDate, count) {
-    var d = new Date(POST_ANCHOR.getFullYear(), POST_ANCHOR.getMonth(), POST_ANCHOR.getDate());
-    var isDelivery = true;
-    var out = [];
-    var guard = 0;
-    while (out.length < count && guard < 4000) {
-      var dow = d.getDay();
-      if (dow !== 0 && dow !== 6) {
-        if (isDelivery && d >= fromDate) out.push(new Date(d));
-        isDelivery = !isDelivery;
-      }
-      d.setDate(d.getDate() + 1);
-      guard++;
-    }
-    return out;
-  }
-  function fmtDay(d, today) {
-    var label = dayNames[d.getDay()] + " " + d.getDate() + ". " + monthNames[d.getMonth()];
-    if (sameDate(d, today)) return "i dag " + label;
-    var tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
-    if (sameDate(d, tomorrow)) return "i morgen " + label;
-    return label;
-  }
-  function renderPost() {
-    var box = $("post");
-    if (!box) return;
-    var today = dateOnly(new Date());
-    var dates = nextDeliveryDates(today, 1);
-    if (!dates.length) { box.hidden = true; return; }
-    box.hidden = false;
-    $("post-next").replaceChildren(
-      document.createTextNode("Neste levering "),
-      el("b", null, fmtDay(dates[0], today))
-    );
-  }
-  // Kjør ved oppstart, og planlegg ny kjøring rett over midnatt slik at
-  // "i dag"/"i morgen" og datoen alltid stemmer uten at siden må lastes på nytt.
-  function scheduleMidnightRefresh() {
-    var now = new Date();
-    var next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 5);
-    setTimeout(function () { renderPost(); scheduleMidnightRefresh(); }, next - now);
-  }
-  renderPost();
-  scheduleMidnightRefresh();
-
   // Gangtid (0–30 min), huskes på enheten
   var wv = parseInt(store.get("walkMin"), 10);
   state.walk = isFinite(wv) ? Math.max(0, Math.min(30, wv)) : 5;
@@ -1027,15 +1039,17 @@
   });
 
   document.addEventListener("visibilitychange", function () {
-    if (document.visibilityState === "visible") { load(); loadNews(); renderPost(); }
+    if (document.visibilityState === "visible") { load(); loadNews(); renderKal(); }
   });
   setInterval(function () { if (document.visibilityState === "visible") load(); }, 30000);
   setInterval(render, 10000);
   setInterval(updateRain, 60000);
   setInterval(loadNews, 60000);
+  setInterval(renderKal, 30 * 60000);
 
   load();
   loadNews();
+  renderKal();
 })();
 </script>
 </body>
