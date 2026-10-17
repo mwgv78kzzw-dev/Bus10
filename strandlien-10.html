@@ -258,6 +258,7 @@
   .kal-dot { flex: none; width: 0.85rem; height: 0.85rem; border-radius: 50%; }
   .kal-dot.rest { background: #1a1a1a; }
   .kal-dot.papp { background: linear-gradient(135deg, #2f7fc4 50%, #8a4fae 50%); }
+  .kal-dot.post { background: var(--red); }
   @media (prefers-color-scheme: dark) { .kal-dot.rest { background: #cfd6db; } }
   .kal-body { flex: 1; min-width: 0; }
   .kal-title { font-weight: 600; font-size: max(14px, 0.98rem); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -313,15 +314,23 @@
     <div class="tk-view"><div class="tk-track" id="tk-track"></div></div>
   </div>
 
-  <div class="kal" id="kal" hidden>
+  <div class="kal" id="waste" hidden>
     <div class="kal-h">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
       <span>Tømmekalender</span>
     </div>
-    <div class="kal-list" id="kal-list"></div>
+    <div class="kal-list" id="waste-list"></div>
   </div>
 
-  <footer>Data fra Entur, Meteorologisk institutt og NRK.</footer>
+  <div class="kal" id="post" hidden>
+    <div class="kal-h">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 7l10 7 10-7"/></svg>
+      <span>Posten</span>
+    </div>
+    <div class="kal-list" id="post-list"></div>
+  </div>
+
+  <footer>Data fra Entur, Meteorologisk institutt, NRK, tømmekalenderen og Posten.</footer>
 </main>
 
 <script>
@@ -853,9 +862,9 @@
   }
 
   // ---- Tømmekalender (faste henteruter, regnet ut lokalt – ingen nettkall) ----
-  var dayFmt = new Intl.DateTimeFormat("no", { weekday: "short", timeZone: "UTC" });
-  var dateFmt = new Intl.DateTimeFormat("no", { day: "numeric", month: "short", timeZone: "UTC" });
-  var KAL_SHOW = 4;
+  var wasteDayFmt = new Intl.DateTimeFormat("no", { weekday: "short", timeZone: "UTC" });
+  var wasteDateFmt = new Intl.DateTimeFormat("no", { day: "numeric", month: "short", timeZone: "UTC" });
+  var WASTE_SHOW = 4;
 
   // Ankerdato = en kjent hentedag for ruten; intervallDager = hvor ofte den gjentas.
   var WASTE_RULES = [
@@ -880,15 +889,15 @@
     while (out.length < count) { out.push(t); t += step; }
     return out;
   }
-  function kalRow(it) {
+  function wasteRow(it) {
     var today = todayUTCms();
     var isToday = it.t === today;
     var isTomorrow = it.t === today + 86400000;
 
     var row = el("div", "kal-item");
     var when = el("div", "kal-when" + (isToday ? " today" : ""));
-    when.appendChild(document.createTextNode(dateFmt.format(it.t)));
-    when.appendChild(el("span", "day", isToday ? "I dag" : isTomorrow ? "I morgen" : dayFmt.format(it.t)));
+    when.appendChild(document.createTextNode(wasteDateFmt.format(it.t)));
+    when.appendChild(el("span", "day", isToday ? "I dag" : isTomorrow ? "I morgen" : wasteDayFmt.format(it.t)));
     row.appendChild(when);
     row.appendChild(el("div", "kal-dot " + it.rule.key));
     var body = el("div", "kal-body");
@@ -896,8 +905,8 @@
     row.appendChild(body);
     return row;
   }
-  function renderKal() {
-    var box = $("kal"), list = $("kal-list");
+  function renderWaste() {
+    var box = $("waste"), list = $("waste-list");
     list.replaceChildren();
     var fromMs = todayUTCms();
     var items = [];
@@ -905,10 +914,51 @@
       wasteOccurrences(rule, fromMs, 2).forEach(function (t) { items.push({ t: t, rule: rule }); });
     });
     items.sort(function (a, b) { return a.t - b.t; });
-    items = items.slice(0, KAL_SHOW);
+    items = items.slice(0, WASTE_SHOW);
     if (!items.length) { box.hidden = true; return; }
     box.hidden = false;
-    items.forEach(function (it) { list.appendChild(kalRow(it)); });
+    items.forEach(function (it) { list.appendChild(wasteRow(it)); });
+  }
+
+  // ---- Posten (brevlevering annenhver virkedag, regnet ut lokalt – ingen nettkall) ----
+  // Ankerdato = en kjent leveringsdag fra posten.no for 5057 Bergen.
+  var POST_ANCHOR = "2026-10-19";
+  var POST_RULE = { key: "post", label: "Posten" };
+
+  function isWeekday(ms) {
+    var d = new Date(ms).getUTCDay();
+    return d >= 1 && d <= 5;
+  }
+  // Antall hverdager (man–fre) i det halvåpne intervallet [loMs, hiMs).
+  function weekdaysBetween(loMs, hiMs) {
+    var days = Math.round((hiMs - loMs) / 86400000);
+    var start = (new Date(loMs).getUTCDay() + 6) % 7; // mandag = 0 .. søndag = 6
+    var weeks = Math.floor(days / 7);
+    var count = weeks * 5;
+    var rem = days - weeks * 7;
+    for (var i = 0; i < rem; i++) { if ((start + i) % 7 < 5) count++; }
+    return count;
+  }
+  function isPostDeliveryDay(ms, anchorMs) {
+    var lo = Math.min(ms, anchorMs), hi = Math.max(ms, anchorMs);
+    return weekdaysBetween(lo, hi) % 2 === 0;
+  }
+  function nextPostDelivery(fromMs) {
+    var anchor = parseYMD(POST_ANCHOR);
+    var t = fromMs;
+    for (var i = 0; i < 30; i++) {
+      if (isWeekday(t) && isPostDeliveryDay(t, anchor)) return t;
+      t += 86400000;
+    }
+    return null;
+  }
+  function renderPost() {
+    var box = $("post"), list = $("post-list");
+    list.replaceChildren();
+    var t = nextPostDelivery(todayUTCms());
+    if (t == null) { box.hidden = true; return; }
+    box.hidden = false;
+    list.appendChild(wasteRow({ t: t, rule: POST_RULE }));
   }
 
   function whenParts(t, now) {
@@ -1039,17 +1089,19 @@
   });
 
   document.addEventListener("visibilitychange", function () {
-    if (document.visibilityState === "visible") { load(); loadNews(); renderKal(); }
+    if (document.visibilityState === "visible") { load(); loadNews(); renderWaste(); renderPost(); }
   });
   setInterval(function () { if (document.visibilityState === "visible") load(); }, 30000);
   setInterval(render, 10000);
   setInterval(updateRain, 60000);
   setInterval(loadNews, 60000);
-  setInterval(renderKal, 30 * 60000);
+  setInterval(renderWaste, 30 * 60000);
+  setInterval(renderPost, 30 * 60000);
 
   load();
   loadNews();
-  renderKal();
+  renderWaste();
+  renderPost();
 })();
 </script>
 </body>
