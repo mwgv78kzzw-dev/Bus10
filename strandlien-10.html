@@ -260,6 +260,10 @@
   .kal-dot.papp { background: linear-gradient(135deg, #2f7fc4 50%, #8a4fae 50%); }
   .kal-dot.post { background: var(--red); }
   @media (prefers-color-scheme: dark) { .kal-dot.rest { background: #cfd6db; } }
+  .cards-row { flex: none; display: flex; flex-wrap: wrap; gap: 0.7rem; margin-top: 0.7rem; }
+  .cards-row .kal { flex: 1 1 11rem; min-width: 0; margin-top: 0; }
+  .post-line { margin: 0.1rem 0 0; font-size: max(14px, 1rem); }
+  .post-line b { font-weight: 700; }
   .kal-body { flex: 1; min-width: 0; }
   .kal-title { font-weight: 600; font-size: max(14px, 0.98rem); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .kal-loc { font-size: max(12px, 0.82rem); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -314,20 +318,22 @@
     <div class="tk-view"><div class="tk-track" id="tk-track"></div></div>
   </div>
 
-  <div class="kal" id="waste" hidden>
-    <div class="kal-h">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-      <span>Tømmekalender</span>
+  <div class="cards-row">
+    <div class="kal" id="waste" hidden>
+      <div class="kal-h">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+        <span>Tømmekalender</span>
+      </div>
+      <div class="kal-list" id="waste-list"></div>
     </div>
-    <div class="kal-list" id="waste-list"></div>
-  </div>
 
-  <div class="kal" id="post" hidden>
-    <div class="kal-h">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 7l10 7 10-7"/></svg>
-      <span>Posten</span>
+    <div class="kal" id="post" hidden>
+      <div class="kal-h">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 7l10 7 10-7"/></svg>
+        <span>Posten</span>
+      </div>
+      <p class="post-line" id="post-line"></p>
     </div>
-    <div class="kal-list" id="post-list"></div>
   </div>
 
   <footer>Data fra Entur, Meteorologisk institutt, NRK, tømmekalenderen og Posten.</footer>
@@ -923,7 +929,8 @@
   // ---- Posten (brevlevering annenhver virkedag, regnet ut lokalt – ingen nettkall) ----
   // Ankerdato = en kjent leveringsdag fra posten.no for 5057 Bergen.
   var POST_ANCHOR = "2026-10-19";
-  var POST_RULE = { key: "post", label: "Posten" };
+  var postDayFmt = new Intl.DateTimeFormat("no", { weekday: "long", timeZone: "UTC" });
+  var postDateFmt = new Intl.DateTimeFormat("no", { day: "numeric", month: "long", timeZone: "UTC" });
 
   function isWeekday(ms) {
     var d = new Date(ms).getUTCDay();
@@ -953,12 +960,13 @@
     return null;
   }
   function renderPost() {
-    var box = $("post"), list = $("post-list");
-    list.replaceChildren();
+    var box = $("post"), line = $("post-line");
+    line.replaceChildren();
     var t = nextPostDelivery(todayUTCms());
     if (t == null) { box.hidden = true; return; }
     box.hidden = false;
-    list.appendChild(wasteRow({ t: t, rule: POST_RULE }));
+    line.appendChild(document.createTextNode("Neste postlevering er: "));
+    line.appendChild(el("b", null, postDayFmt.format(t) + " " + postDateFmt.format(t)));
   }
 
   function whenParts(t, now) {
