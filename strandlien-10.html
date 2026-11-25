@@ -268,6 +268,28 @@
   .kal-title { font-weight: 600; font-size: max(14px, 0.98rem); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .kal-loc { font-size: max(12px, 0.82rem); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+  /* Stor klokke i toppen. Skjules på smale skjermer (mobilen har egen klokke). */
+  .clock-big { margin-left: auto; font: 700 3.8rem/1 var(--display); font-variant-numeric: tabular-nums; }
+  .clock-big ~ .weather { margin-left: 1.2rem; }
+  @media (max-width: 600px) {
+    .clock-big { display: none; }
+    .clock-big ~ .weather { margin-left: auto; }
+  }
+
+  /* Vær time for time */
+  .hourly { margin-top: 0.7rem; }
+  .hr-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); row-gap: 0.7rem; text-align: center; font-variant-numeric: tabular-nums; }
+  .hr { min-width: 0; display: flex; flex-direction: column; align-items: center; }
+  .hr-time { color: var(--muted); font-weight: 600; font-size: max(12px, 0.85rem); }
+  .hr-icon { width: 2.4rem; height: 2.4rem; max-width: 100%; margin: 0.2rem 0; }
+  .hr-icon svg { display: block; width: 100%; height: 100%; }
+  .hr-icon .w-svg * { animation: none; }
+  .hr-icon .w-svg .w-cloud { stroke: var(--panel); }
+  .hr-temp { font: 700 1.45rem/1.1 var(--display); }
+  .hr-rain { min-height: 1.3em; color: var(--rain); font-weight: 600; font-size: max(11px, 0.78rem); }
+  .hr-wind { color: var(--muted); font-size: max(11px, 0.78rem); white-space: nowrap; }
+  @media (max-width: 600px) { .hr-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+
   footer { flex: none; margin: 0.5rem 0.1rem 0; color: var(--muted); font-size: max(11px, 0.75rem); }
 </style>
 </head>
@@ -279,6 +301,7 @@
       <h1>Strandlien</h1>
       <div class="sub">Skyss · Bergen</div>
     </div>
+    <time class="clock-big" id="clock"></time>
     <div class="weather" id="weather" hidden>
       <div class="w-icon" id="w-icon" aria-hidden="true"></div>
       <span class="w-temp" id="w-temp"></span>
@@ -336,6 +359,11 @@
     </div>
   </div>
 
+  <div class="kal hourly" id="hourly" hidden>
+    <div class="kal-h"><span>Været time for time · nedbør i mm, vind i m/s</span></div>
+    <div class="hr-grid" id="hr-grid"></div>
+  </div>
+
   <footer>Data fra Entur, Meteorologisk institutt, NRK, tømmekalenderen og Posten.</footer>
 </main>
 
@@ -373,7 +401,7 @@
   };
 
   var state = { calls: [], updatedAt: null, error: null, loaded: false, lat: null, lon: null, lineId: null, walk: 5 };
-  var weather = { at: 0, busy: false, code: null, hourly: null };
+  var weather = { at: 0, busy: false, code: null, hourly: null, series: [] };
   var busy = false;
 
   function $(id) { return document.getElementById(id); }
@@ -582,10 +610,43 @@
         return { t: Date.parse(x.time), rate: typeof amt === "number" ? amt : null, code: n1 && n1.summary && n1.summary.symbol_code };
       });
       updateRain();
+      weather.series = j.properties.timeseries.slice(0, 24);
+      renderHourly();
     }).catch(function () {
       /* keep the last shown weather, or none */
     }).finally(function () { weather.busy = false; });
   }
+
+  // ---- Vær time for time (samme MET-data som været i toppen) ----
+  var HOURS = 12;
+  function renderHourly() {
+    var now = Date.now();
+    var list = weather.series.filter(function (x) {
+      var d = x.data;
+      return Date.parse(x.time) > now && d && d.next_1_hours && d.next_1_hours.summary &&
+             typeof d.instant.details.air_temperature === "number";
+    }).slice(0, HOURS);
+    var grid = $("hr-grid");
+    grid.replaceChildren();
+    $("hourly").hidden = !list.length;
+    list.forEach(function (x) {
+      var now1 = x.data.instant.details, n1 = x.data.next_1_hours;
+      var mm = n1.details && n1.details.precipitation_amount;
+      var col = el("div", "hr");
+      col.appendChild(el("div", "hr-time", timeFmt.format(new Date(x.time)).slice(0, 2)));
+      var icon = el("div", "hr-icon");
+      icon.innerHTML = weatherSvg(n1.summary.symbol_code);
+      col.appendChild(icon);
+      col.appendChild(el("div", "hr-temp", Math.round(now1.air_temperature) + "°"));
+      col.appendChild(el("div", "hr-rain", mm > 0 ? mm.toFixed(1).replace(".", ",") : ""));
+      col.appendChild(el("div", "hr-wind",
+        typeof now1.wind_speed === "number" ? String(Math.round(now1.wind_speed)) : ""));
+      grid.appendChild(col);
+    });
+  }
+
+  // ---- Stor klokke ----
+  function renderClock() { $("clock").textContent = timeFmt.format(new Date()); }
 
   // ---- Nyheter fra NRK (overskrift + ingress) ----
   var FEED_URL = "https://www.nrk.no/vestland/toppsaker.rss";  // lokalnyheter fra NRK Vestland
@@ -1097,7 +1158,7 @@
   });
 
   document.addEventListener("visibilitychange", function () {
-    if (document.visibilityState === "visible") { load(); loadNews(); renderWaste(); renderPost(); }
+    if (document.visibilityState === "visible") { renderClock(); renderHourly(); load(); loadNews(); renderWaste(); renderPost(); }
   });
   setInterval(function () { if (document.visibilityState === "visible") load(); }, 30000);
   setInterval(render, 10000);
@@ -1105,7 +1166,10 @@
   setInterval(loadNews, 60000);
   setInterval(renderWaste, 30 * 60000);
   setInterval(renderPost, 30 * 60000);
+  setInterval(renderClock, 1000);
+  setInterval(renderHourly, 60000);
 
+  renderClock();
   load();
   loadNews();
   renderWaste();
