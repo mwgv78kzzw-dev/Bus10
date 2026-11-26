@@ -290,6 +290,13 @@
   .hr-wind { color: var(--muted); font-size: max(11px, 0.78rem); white-space: nowrap; }
   @media (max-width: 600px) { .hr-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
 
+  /* Høyre kolonne: Posten øverst, webkamera under */
+  .cards-col { flex: 1 1 11rem; min-width: 0; display: flex; flex-direction: column; gap: 0.7rem; }
+  .cards-col .kal { flex: none; margin-top: 0; }
+  .cam-frame { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 1rem; background: var(--panel); border: 1px solid var(--line); }
+  .cam-frame > a { display: block; padding: 0.7rem 0.9rem; color: var(--muted); }
+  .cam-frame iframe { position: absolute; inset: 0; width: 100% !important; height: 100% !important; border: 0; }
+
   footer { flex: none; margin: 0.5rem 0.1rem 0; color: var(--muted); font-size: max(11px, 0.75rem); }
 </style>
 </head>
@@ -350,12 +357,20 @@
       <div class="kal-list" id="waste-list"></div>
     </div>
 
+    <div class="cards-col">
     <div class="kal" id="post" hidden>
       <div class="kal-h">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 7l10 7 10-7"/></svg>
         <span>Posten</span>
       </div>
       <p class="post-line" id="post-line"></p>
+    </div>
+
+    <!-- Webkamera: Windys innbyggingskode -->
+    <div class="cam-frame" id="cam">
+      <a name="windy-webcam-timelapse-player" data-id="1460757071" data-play="day" data-loop="1" data-auto-play="1" data-force-full-screen-on-overlay-play="0" data-interactive="1" href="https://windy.com/webcams/1460757071" target="_blank" rel="noopener">Bergenhus: Fløyen - Bergen</a>
+    </div>
+    <script async src="https://webcams.windy.com/webcams/public/embed/v2/script/player.js"></script>
     </div>
   </div>
 
@@ -364,7 +379,7 @@
     <div class="hr-grid" id="hr-grid"></div>
   </div>
 
-  <footer>Data fra Entur, Meteorologisk institutt, NRK, tømmekalenderen og Posten.</footer>
+  <footer>Data fra Entur, Meteorologisk institutt, NRK, tømmekalenderen og Posten. Webkamera fra <a href="https://windy.com/webcams/1460757071" target="_blank" rel="noopener" style="color:inherit">Windy.com</a>.</footer>
 </main>
 
 <script>
@@ -1167,6 +1182,11 @@
   setInterval(renderWaste, 30 * 60000);
   setInterval(renderPost, 30 * 60000);
   setInterval(renderClock, 1000);
+  // Last kameraet på nytt hvert 10. minutt, så opptaket ikke blir gammelt
+  setInterval(function () {
+    var f = document.querySelector("#cam iframe");
+    if (f && navigator.onLine && document.visibilityState === "visible") f.src = f.src;
+  }, 10 * 60000);
   setInterval(renderHourly, 60000);
 
   renderClock();
